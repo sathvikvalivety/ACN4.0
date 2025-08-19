@@ -1,158 +1,120 @@
-import React, { useRef, useState } from 'react';
-import { motion, useInView, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+// Removed unused ChevronLeft, ChevronRight imports
+
+
+import img1 from '../images/1st.JPG';
+import img2 from '../images/2nd.jpg';
+import img3 from '../images/3rd.jpg';
+import img4 from '../images/conclave.jpg';
+
+const localImages = [img1, img2, img3, img4];
+
+import { useEffect, useRef } from 'react';
 
 const Gallery = () => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-  const [selectedImage, setSelectedImage] = useState<number | null>(null);
-  const [showMore, setShowMore] = useState(false);
-
-  const images = [
-    'https://images.pexels.com/photos/1181677/pexels-photo-1181677.jpeg',
-    'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg',
-    'https://images.pexels.com/photos/1181675/pexels-photo-1181675.jpeg',
-    'https://images.pexels.com/photos/3184292/pexels-photo-3184292.jpeg',
-    'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg',
-    'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg',
-    'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg',
-    'https://images.pexels.com/photos/3184357/pexels-photo-3184357.jpeg',
-    'https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg',
-  ];
-
-  const displayedImages = showMore ? images : images.slice(0, 6);
+  const [centerIndex, setCenterIndex] = useState(0);
+  const [isSliding, setIsSliding] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
 
   const nextImage = () => {
-    if (selectedImage !== null) {
-      setSelectedImage((selectedImage + 1) % images.length);
-    }
+    if (isSliding) return;
+    setIsSliding(true);
+    setTimeout(() => {
+      setCenterIndex((prev) => (prev + 1) % localImages.length);
+      setIsSliding(false);
+    }, 600); // Animation duration
   };
 
-  const prevImage = () => {
-    if (selectedImage !== null) {
-      setSelectedImage(selectedImage === 0 ? images.length - 1 : selectedImage - 1);
-    }
-  };
+  // Removed prevImage function (no arrows)
+
+  // Auto-slide effect with pause
+  useEffect(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = window.setTimeout(() => {
+      nextImage();
+    }, 3000); // Pause in center for 3s
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [centerIndex]);
 
   return (
     <section id="gallery" className="py-20 bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          ref={ref}
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
-        >
+        <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-primary mb-4">
             Event Gallery
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Capturing moments of learning, networking, and cybersecurity excellence
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-          initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          {displayedImages.map((image, index) => (
-            <motion.div
-              key={index}
-              className="relative group overflow-hidden rounded-xl shadow-lg cursor-pointer"
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              whileHover={{ scale: 1.05 }}
-              onClick={() => setSelectedImage(index)}
-            >
-              <img
-                src={image}
-                alt={`Gallery image ${index + 1}`}
-                className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="text-white text-lg font-semibold">View Image</div>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {!showMore && (
-          <motion.div
-            className="text-center mt-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.4 }}
+        <div className="flex items-center justify-center gap-4 relative">
+          <div
+            className="relative flex items-center justify-center w-full overflow-hidden"
+            style={{ minHeight: '320px', maxWidth: '100%' }}
           >
-            <motion.button
-              onClick={() => setShowMore(true)}
-              className="px-8 py-3 bg-primary text-white font-semibold rounded-full hover:bg-primary/90 transition-colors duration-300"
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              View More Images
-            </motion.button>
-          </motion.div>
-        )}
+            {/* Left Preview (desktop only) */}
+            <div className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 z-0 w-1/3 justify-end">
+              <motion.img
+                key={`left-${centerIndex}`}
+                src={localImages[(centerIndex - 1 + localImages.length) % localImages.length]}
+                alt="Previous"
+                initial={{ x: -400, opacity: 0.3, scale: 0.7 }}
+                animate={{ x: -180, opacity: 0.5, scale: 1 }}
+                exit={{ x: -400, opacity: 0.3, scale: 0.7 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 30 }}
+                className="rounded-xl object-contain shadow-md bg-white"
+                style={{ width: '220px', height: '160px', filter: 'blur(1px)' }}
+              />
+            </div>
 
-        {/* Lightbox */}
-        <AnimatePresence>
-          {selectedImage !== null && (
-            <motion.div
-              className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedImage(null)}
-            >
-              <motion.div
-                className="relative max-w-4xl max-h-full"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <img
-                  src={images[selectedImage]}
-                  alt={`Gallery image ${selectedImage + 1}`}
-                  className="max-w-full max-h-full object-contain rounded-lg"
-                />
+            {/* Center Main Image (always visible, animated for both mobile and desktop) */}
+            <div className="flex justify-center items-center w-full z-10">
+              <motion.img
+                key={`center-${centerIndex}`}
+                src={localImages[centerIndex]}
+                alt={`Gallery image ${centerIndex + 1}`}
+                initial={{ x: 300, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -300, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="rounded-2xl object-contain shadow-xl bg-white"
+                style={{
+                  width: '100%',
+                  maxWidth: window.innerWidth < 640 ? '320px' : '600px',
+                  height: 'auto',
+                  maxHeight: '90vh',
+                  aspectRatio: '4/3',
+                  display: 'block',
+                }}
+              />
+            </div>
 
-                {/* Navigation */}
-                <button
-                  onClick={prevImage}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white p-3 rounded-full transition-colors duration-200"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
+            {/* Right Preview (desktop only) */}
+            <div className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 z-0 w-1/3 justify-start">
+              <motion.img
+                key={`right-${centerIndex}`}
+                src={localImages[(centerIndex + 1) % localImages.length]}
+                alt="Next"
+                initial={{ x: 400, opacity: 0.3, scale: 0.7 }}
+                animate={{ x: 180, opacity: 0.5, scale: 1 }}
+                exit={{ x: 400, opacity: 0.3, scale: 0.7 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 30 }}
+                className="rounded-2xl object-contain shadow-md bg-white"
+                style={{ width: '220px', height: '160px', filter: 'blur(1px)' }}
+              />
+            </div>
+          </div>
+        </div>
 
-                <button
-                  onClick={nextImage}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white p-3 rounded-full transition-colors duration-200"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-
-                {/* Close Button */}
-                <button
-                  onClick={() => setSelectedImage(null)}
-                  className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white p-3 rounded-full transition-colors duration-200"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-
-                {/* Image Counter */}
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/20 text-white px-4 py-2 rounded-full">
-                  {selectedImage + 1} / {images.length}
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="text-center mt-8 text-gray-500">
+          {centerIndex + 1} / {localImages.length}
+        </div>
       </div>
     </section>
   );

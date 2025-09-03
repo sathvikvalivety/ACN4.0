@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Navbar from './components/events/EventsNavbar'
 import AuthModal from './components/events/AuthModal'
@@ -35,8 +35,8 @@ function EventsApp() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/event/event/:eventId" element={<EventDetailPage />} />
-      <Route path="/pay/:eventId" element={<PaymentPage />} />
+      <Route path="event/:eventId" element={<EventDetailPage />} />
+      <Route path="pay/:eventId" element={<PaymentPage />} />
     </Routes>
   )
 }
@@ -55,7 +55,6 @@ function HomePage() {
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const { toasts, addToast, removeToast } = useToast()
-  const navigate = useNavigate()
   
   const { user, loading: authLoading } = useAuth()
 
@@ -103,9 +102,6 @@ function HomePage() {
     }
   }
 
-  const handleEventClick = (eventId: string) => {
-    navigate(`/event/${eventId}`)
-  }
 
   // Update localStorage when auth modal state changes
   useEffect(() => {
@@ -256,10 +252,7 @@ function HomePage() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.6, delay: index * 0.1 }}
                   >
-                    <EventCard
-                      event={event}
-                      onClick={handleEventClick}
-                    />
+                    <EventCard event={event} />
                   </motion.div>
                 ))}
               </div>

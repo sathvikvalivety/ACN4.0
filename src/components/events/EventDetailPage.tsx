@@ -227,7 +227,7 @@ export default function EventDetailPage() {
     if (!user || !eventId || !event) return
     setIsProcessing(true)
     // Navigate to Payment Page with context
-    navigate(`/pay/${eventId}` , { state: { eventTitle: event.title, amount: event.price ?? 0 } })
+    navigate(`../pay/${eventId}` , { state: { eventTitle: event.title, amount: event.price ?? 0 } })
     setTimeout(() => setIsProcessing(false), 200)
   }
 
@@ -329,7 +329,7 @@ export default function EventDetailPage() {
 
           {/* Back Button - Top Left */}
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('../')}
             className="absolute top-6 left-6 p-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full hover:bg-white dark:hover:bg-gray-800 transition-colors shadow-lg z-10"
           >
             <ArrowLeft className="w-6 h-6" />

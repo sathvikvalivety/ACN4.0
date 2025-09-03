@@ -18,10 +18,9 @@ interface Event {
 
 interface EventCardProps {
   event: Event
-  onClick?: (eventId: string) => void
 }
 
-export default function EventCard({ event, onClick }: EventCardProps) {
+export default function EventCard({ event }: EventCardProps) {
   const [isRegistered, setIsRegistered] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
   const { user } = useAuth()
@@ -100,7 +99,7 @@ export default function EventCard({ event, onClick }: EventCardProps) {
 
     // Navigate to payment page flow with context
     setIsRegistering(true)
-    navigate(`/pay/${event.id}`, {
+    navigate(`pay/${event.id}`, {
       state: { eventTitle: event.title, amount: event.price ?? 0 },
     })
     setTimeout(() => setIsRegistering(false), 200)
@@ -178,8 +177,10 @@ export default function EventCard({ event, onClick }: EventCardProps) {
           </button>
           
           <a
-            href={`/event/${event.id}`}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`event/${event.id}`);
+            }}
             className="block text-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mt-2"
           >
             View Details

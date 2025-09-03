@@ -35,7 +35,7 @@ function EventsApp() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/event/:eventId" element={<EventDetailPage />} />
+      <Route path="/event/event/:eventId" element={<EventDetailPage />} />
       <Route path="/pay/:eventId" element={<PaymentPage />} />
     </Routes>
   )

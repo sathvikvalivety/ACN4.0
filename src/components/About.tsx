@@ -42,8 +42,9 @@ const About = () => {
               transition={{ duration: 0.6, delay: 0.3 }}
             >
               <div className="text-center">
-                <div className="text-3xl font-bold font-roboto text-primary">3rd</div>
-                <div className="text-sm text-gray-600">Edition</div>
+                <div className="text-3xl font-bold font-roboto text-[#b22049]">4th</div>
+
+                <div className="text-sm text-gray-600 text-[#b22049]">Edition</div>
               </div>
             </motion.div>
           </motion.div>
@@ -54,9 +55,12 @@ const About = () => {
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold font-roboto text-primary mb-6">
-              About ACN
-            </h2>
+<h2
+  className="text-4xl md:text-5xl font-bold font-poppins mb-6"
+  style={{ color: '#b22049' }}
+>
+  About ACN
+</h2>
             
             <p className="text-lg text-gray-600 mb-8 leading-relaxed">
               Amrita CyberNation is an annual event dedicated to promoting cyber awareness 
@@ -86,7 +90,7 @@ const About = () => {
             </div>
 
             <motion.button
-              className="px-8 py-3 bg-primary text-white font-semibold font-roboto rounded-full hover:bg-primary/90 transition-colors duration-300"
+              className="px-8 py-3 bg-[#b22049] text-white font-semibold font-roboto rounded-full hover:bg-primary/90 transition-colors duration-300"
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
               initial={{ opacity: 0, y: 20 }}

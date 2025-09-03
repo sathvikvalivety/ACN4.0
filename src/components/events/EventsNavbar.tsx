@@ -65,7 +65,7 @@ export default function EventsNavbar({ onAuthClick, onProfileClick, onAdminClick
 
               {/* Desktop Navigation */}
               <div className="hidden md:flex items-center space-x-6">
-                <NavLink href="#home">Home</NavLink>
+                <NavLink href="/">Home</NavLink>
                 <NavLink href="#events">Events</NavLink>
                 
                 <DarkModeToggle />

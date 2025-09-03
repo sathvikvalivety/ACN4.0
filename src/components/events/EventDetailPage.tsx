@@ -309,14 +309,14 @@ export default function EventDetailPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
-      <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
+      <div className="grid grid-cols-1 lg:grid-cols-[53%_47%] min-h-screen">
         {/* Left Column - Event Image */}
         <div className="relative overflow-hidden">
           {event.image_url ? (
             <img
               src={event.image_url}
               alt={event.title}
-              className="w-full h-full min-h-screen object-cover"
+              className="w-auto h-full object-fill"
             />
           ) : (
             <div className="w-full h-full min-h-screen bg-gradient-to-br from-blue-100 to-blue-50 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center">
@@ -356,30 +356,18 @@ export default function EventDetailPage() {
           </div>
 
           {/* Event Title Overlay - Bottom */}
-          <div className="absolute bottom-8 left-6 right-6 text-white z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="backdrop-blur-sm bg-black/30 rounded-2xl p-6"
-            >
-              <h1 className="text-3xl font-bold mb-2">{event.title}</h1>
-              <p className="text-white/90 text-lg">{event.tagline}</p>
+{/* Event Title Overlay - Bottom 
+<div className="absolute bottom-28 left-6 right-6 text-white z-10">
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="backdrop-blur-sm bg-black/30 rounded-l p-6 flex items-center space-x-4"
+  >
+    <h1 className="text-3xl font-bold m-0">{event.title}</h1>
+    <p className="text-white/90 text-lg m-0">{event.tagline}</p>
+  </motion.div>
+</div>*/}
 
-              {/* Quick Stats */}
-              <div className="flex items-center space-x-4 mt-4">
-                <div className="flex items-center space-x-1 text-sm bg-black/20 px-2 py-1 rounded-full">
-                  <Users className="w-4 h-4 text-white" />
-                  <span className="text-white">{registrationCount} registered</span>
-                </div>
-                <div className="flex items-center space-x-1 bg-black/20 px-2 py-1 rounded-full">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3 h-3 text-yellow-300 fill-yellow-300" />
-                  ))}
-                  <span className="text-sm ml-1 text-white">4.8</span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
         </div>
 
         {/* Right Column - Event Content */}
@@ -391,35 +379,7 @@ export default function EventDetailPage() {
               animate={{ opacity: 1, x: 0 }}
               className="space-y-8"
             >
-              {/* Registration Button */}
-              <div className="mb-8">
-                <button
-                  onClick={handleRegister}
-                  disabled={registering || isProcessing}
-                  className={`w-full py-4 px-8 rounded-xl font-semibold text-lg transition-all duration-200 flex items-center justify-center space-x-3 ${
-                    isRegistered
-                      ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700'
-                  } ${(registering || isProcessing) ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {registering || isProcessing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                      <span>Processing...</span>
-                    </>
-                  ) : isRegistered ? (
-                    <>
-                      <CheckCircle className="w-5 h-5" />
-                      <span>Registered - Click to Unregister</span>
-                    </>
-                  ) : (
-                    <>
-                      <Users className="w-5 h-5" />
-                      <span>Pay & Register {event.price ? `(₹${event.price})` : ''}</span>
-                    </>
-                  )}
-                </button>
-              </div>
+
 
               {/* Description */}
               <div className="mb-8 bg-white dark:bg-gray-800/50 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200">
@@ -526,25 +486,6 @@ export default function EventDetailPage() {
                   </div>
                 )}
 
-                {event.capacity && (
-                  <div className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl sm:col-span-2">
-                    <Users className="w-6 h-6 text-primary" />
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900 dark:text-white">Capacity</p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div
-                            className="bg-primary h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${Math.min((registrationCount / event.capacity) * 100, 100)}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {registrationCount} / {event.capacity}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Prerequisites */}
@@ -561,19 +502,40 @@ export default function EventDetailPage() {
                   </div>
                 </div>
               )}
-
-              {/* Related Events */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-8">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Related Events</h2>
-                <div className="text-center py-8">
-                  <Calendar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-600 dark:text-gray-400">Related events will appear here</p>
-                </div>
+                            {/* Registration Button */}
+              <div className="mb-8">
+                <button
+                  onClick={handleRegister}
+                  disabled={registering || isProcessing}
+                  className={`w-full py-4 px-8 rounded-xl font-semibold text-lg transition-all duration-200 flex items-center justify-center space-x-3 ${
+                    isRegistered
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700'
+                  } ${(registering || isProcessing) ? 'opacity-70 cursor-not-allowed' : ''}`}
+                >
+                  {registering || isProcessing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      <span>Processing...</span>
+                    </>
+                  ) : isRegistered ? (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      <span>Registered - Click to Unregister</span>
+                    </>
+                  ) : (
+                    <>
+                      <Users className="w-5 h-5" />
+                      <span>Pay & Register {event.price ? `(₹${event.price})` : ''}</span>
+                    </>
+                  )}
+                </button>
               </div>
             </motion.div>
           </div>
         </div>
       </div>
+      
 
       {/* Razorpay script will be loaded here */}
       <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>

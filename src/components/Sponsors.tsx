@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 
 // --- Your logo imports (keep paths as-is) ---
 import Ashok_Leyland from "../images/Sponsors/Ashok_Leyland.png";
@@ -82,6 +83,8 @@ const SponsorsWeaveMarquee = () => {
   const row1 = SPONSORS.slice(0, split);
   const row2 = SPONSORS.slice(split);
 
+  const navigate = useNavigate();
+
   // Ensure both rows have content; if one is short, borrow from the other
   const safeRow1 = row1.length ? row1 : SPONSORS;
   const safeRow2 = row2.length ? row2 : SPONSORS;
@@ -127,6 +130,7 @@ const SponsorsWeaveMarquee = () => {
           <button
             className="px-8 sm:px-10 py-3.5 sm:py-4 rounded-full font-semibold font-roboto text-gray-900 bg-[var(--accent)] hover:bg-[#8d1034] active:bg-[#780d2c] transition-colors shadow-[0_8px_24px_rgba(163,19,63,0.45)]"
             aria-label="Become a Partner"
+            onClick={() => navigate("/sponsors")}
           >
             All Partner's
           </button>

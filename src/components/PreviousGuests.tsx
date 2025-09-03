@@ -146,12 +146,12 @@ const GalleryAnimation: React.FC<GalleryAnimationProps> = ({
       <div className="w-full max-w-7xl">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl md:text-5xl font-bold font-roboto tracking-wider mb-4 bg-gradient-to-r from-[#b22049] to-[#e63965] bg-clip-text text-transparent">
-            GALLERY
+          <h1 className="text-3xl md:text-5xl font-bold font-mont tracking-wider mb-4 bg-gradient-to-r from-[#b22049] to-[#e63965] bg-clip-text text-transparent">
+            Esteemed Guests & Speakers from Past Editions
           </h1>
-          <p className="text-gray-600 text-sm md:text-base max-w-2xl mx-auto">
+          {/* <p className="text-gray-600 text-sm md:text-base max-w-2xl mx-auto">
             Distinguished Chief Guests & Speakers from Previous Years
-          </p>
+          </p> */}
         </div>
 
         {/* Gallery */}

@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
-// --- Your logo imports (keep paths as-is) ---
+// --- Sponsor Logos ---
 import Ashok_Leyland from "../images/Sponsors/Ashok_Leyland.png";
 import CISAI from "../images/Sponsors/CISAI.png";
 import CUB from "../images/Sponsors/CUB.png";
@@ -16,30 +16,29 @@ import TCS from "../images/Sponsors/TCS.png";
 import Wipro from "../images/Sponsors/Wipro.png";
 
 const SPONSORS = [
-  { name: "Ashok Leyland", logo: Ashok_Leyland },
+  // { name: "Ashok Leyland", logo: Ashok_Leyland },
   { name: "CISAI", logo: CISAI },
-  { name: "CUB", logo: CUB },
-  { name: "Hack The Box", logo: Hack_The_Box },
+  // { name: "CUB", logo: CUB },
+  // { name: "Hack The Box", logo: Hack_The_Box },
   { name: "Innspark", logo: Innspark },
   { name: "ISEA", logo: ISEA },
   { name: "ManageEngine", logo: Manag_Engine },
-  { name: "MRF", logo: MRF },
-  { name: "Quick Heal", logo: Quick_Heal },
+  // { name: "MRF", logo: MRF },
+  // { name: "Quick Heal", logo: Quick_Heal },
   { name: "Skills DA", logo: Skills_Da },
-  { name: "TCS", logo: TCS },
-  { name: "Wipro", logo: Wipro },
-  // Add more logos freely — marquee stays seamless
+  // { name: "TCS", logo: TCS },
+  // { name: "Wipro", logo: Wipro },
 ];
 
-// Repeat the array N times to ensure each lane is wide enough even on big screens
+// Repeat sponsors for seamless marquee
 const repeat = (arr, times = 3) => Array.from({ length: times }, () => arr).flat();
 
 const Card = ({ item }) => (
   <div
-    className="w-44 sm:w-48 md:w-52 h-24 sm:h-28 md:h-32 flex-shrink-0 rounded-2xl bg-gray-900/80 shadow-lg border border-gray-800/70
-               hover:border-[var(--accent)]/30 transition-all duration-500 group"
+    className="w-[9rem] sm:w-[11rem] md:w-[12rem] h-[9rem] sm:h-[10rem] md:h-[11rem] 
+               flex-shrink-0 rounded-2xl bg-transparent shadow-none border-none scale-100"
   >
-    <div className="relative w-full h-full p-3 sm:p-4 flex items-center justify-center rounded-2xl">
+    <div className="relative w-full h-full p-3 flex items-center justify-center rounded-2xl">
       <img
         src={item.logo}
         alt={item.name}
@@ -47,26 +46,24 @@ const Card = ({ item }) => (
         decoding="async"
         className="max-w-full max-h-full object-contain transition-all duration-500"
       />
-      <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-[var(--accent)]/10 via-transparent to-transparent" />
     </div>
   </div>
 );
 
-const MarqueeRow = ({ items, reverse = false, speedSec = 30, gapClass = "gap-8" }) => {
-  // Build a long sequence and then duplicate once more for seamless 200% track
+const MarqueeRow = ({ items, speedSec = 30, gapClass = "gap-20" }) => {
   const longSeq = useMemo(() => repeat(items, 3), [items]);
   const track = useMemo(() => [...longSeq, ...longSeq], [longSeq]);
 
   return (
     <div className="relative overflow-hidden">
-      {/* Edge fades for elegance */}
-      <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 sm:w-24 bg-gradient-to-r from-gray-900 to-transparent z-10" />
-      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-16 sm:w-24 bg-gradient-to-l from-gray-900 to-transparent z-10" />
+      {/* Edge fades */}
+      <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-gray-900 to-transparent z-10" />
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-gray-900 to-transparent z-10" />
 
       <div
         className={`marquee-track flex ${gapClass} items-center will-change-transform`}
         style={{
-          animation: `${reverse ? "scrollXRev" : "scrollX"} var(--speed, ${speedSec}s) linear infinite`,
+          animation: `scrollX var(--speed, ${speedSec}s) linear infinite`,
         }}
       >
         {track.map((it, i) => (
@@ -78,16 +75,8 @@ const MarqueeRow = ({ items, reverse = false, speedSec = 30, gapClass = "gap-8" 
 };
 
 const SponsorsWeaveMarquee = () => {
-  const accent = "#a3133f"; // your brand accent
-  const split = Math.ceil(SPONSORS.length / 2);
-  const row1 = SPONSORS.slice(0, split);
-  const row2 = SPONSORS.slice(split);
-
+  const accent = "#a3133f";
   const navigate = useNavigate();
-
-  // Ensure both rows have content; if one is short, borrow from the other
-  const safeRow1 = row1.length ? row1 : SPONSORS;
-  const safeRow2 = row2.length ? row2 : SPONSORS;
 
   return (
     <section
@@ -96,10 +85,11 @@ const SponsorsWeaveMarquee = () => {
       style={{ ["--accent"]: accent, ["--speed"]: "30s" }}
       aria-label="Sponsors"
     >
-      {/* Local keyframes for perfect seamless scroll (200% track → translateX(-50%)) */}
       <style>{`
-        @keyframes scrollX { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        @keyframes scrollXRev { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+        @keyframes scrollX {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
         .marquee-track { width: max-content; }
         .marquee-track:hover { animation-play-state: paused; }
       `}</style>
@@ -117,15 +107,10 @@ const SponsorsWeaveMarquee = () => {
           </p>
         </div>
 
-        {/* Two continuous lanes */}
-        <div className="space-y-8 sm:space-y-12">
-          {/* Top row (left → right or right → left). We choose leftwards for variety */}
-          <MarqueeRow items={safeRow1} reverse={false} speedSec={28} />
-          {/* Bottom row opposite direction */}
-          <MarqueeRow items={safeRow2} reverse={true} speedSec={32} />
-        </div>
+        {/* Single marquee row */}
+        <MarqueeRow items={SPONSORS} speedSec={30} />
 
-        {/* CTA (optional) */}
+        {/* CTA */}
         <div className="text-center mt-12 sm:mt-16">
           <button
             className="px-8 sm:px-10 py-3.5 sm:py-4 rounded-full font-semibold font-roboto text-gray-900 bg-[var(--accent)] hover:bg-[#8d1034] active:bg-[#780d2c] transition-colors shadow-[0_8px_24px_rgba(163,19,63,0.45)]"

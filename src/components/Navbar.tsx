@@ -24,7 +24,7 @@ const Navbar = () => {
       const scrollTop = window.scrollY;
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
       const scrollPercent = (scrollTop / docHeight) * 100;
-      
+
       setScrollProgress(scrollPercent);
       setIsScrolled(scrollTop > 50);
     };
@@ -35,22 +35,23 @@ const Navbar = () => {
 
   const navigate = useNavigate();
   const isEditionsPage = window.location.pathname.includes('/editions');
+  const isSponsorsPage = window.location.pathname === '/sponsors';
 
   const navItems: NavItem[] = [
-    { 
-      name: 'Home', 
+    {
+      name: 'Home',
       path: '/',
       onClick: () => navigate('/')
     },
-{
-  name: 'Events 4.0',
-  path: '/events',
-  onClick: () => {
-    navigate('/events'); // works only if your React Router has a <Route path="/events" />
-  },
-},
-    { 
-      name: 'Editions', 
+    {
+      name: 'Events 4.0',
+      path: '/events',
+      onClick: () => {
+        navigate('/events'); // works only if your React Router has a <Route path="/events" />
+      },
+    },
+    {
+      name: 'Editions',
       path: '/editions',
       onClick: () => navigate('/editions'),
       dropdown: [
@@ -59,20 +60,20 @@ const Navbar = () => {
         { name: '2022', path: '/editions/2022' }
       ]
     },
-    { 
-      name: 'Sponsors', 
-      path: '#sponsors',
+    {
+      name: 'Sponsors',
+      path: '/sponsors',
       onClick: () => {
-        if (!isEditionsPage) {
+        if (window.location.pathname === "/") {
           const element = document.querySelector('#sponsors');
           if (element) element.scrollIntoView({ behavior: 'smooth' });
         } else {
-          navigate('/#sponsors');
+          navigate('/sponsors');
         }
       }
     },
-    { 
-      name: 'Gallery', 
+    {
+      name: 'Gallery',
       path: '#gallery',
       onClick: () => {
         if (!isEditionsPage) {
@@ -88,8 +89,8 @@ const Navbar = () => {
         { name: '2022 Gallery', path: '/gallery/2022' }
       ]
     },
-    { 
-      name: 'Team', 
+    {
+      name: 'Team',
       path: '#team',
       onClick: () => {
         if (!isEditionsPage) {
@@ -112,7 +113,7 @@ const Navbar = () => {
         navigate(item.path);
       }
     }
-    
+
     if (!isDropdownItem) {
       setIsMobileMenuOpen(false);
       setActiveDropdown(null);
@@ -142,24 +143,29 @@ const Navbar = () => {
 
       <motion.nav
         className={`fixed z-40 transition-all duration-1000 ease-in-out ${
-          isScrolled
-            ? 'bg-black/95 backdrop-blur-md shadow-2xl rounded-[70px] mx-auto mt-5'
-            : 'bg-transparent'
+          isSponsorsPage
+            ? isScrolled
+              ? 'bg-black/95 backdrop-blur-md shadow-2xl rounded-[70px] mx-auto mt-5'
+              : 'bg-black'
+            : isScrolled
+              ? 'bg-black/95 backdrop-blur-md shadow-2xl rounded-[70px] mx-auto mt-5'
+              : 'bg-transparent'
         }`}
         style={{
           top: 0,
-          left: isScrolled ? '5%' : '0%',
-          right: isScrolled ? '5%' : '0%',
-          width: isScrolled ? '90%' : '100%',
-          height: isScrolled ? '72px' : '80px'
+          left: (isScrolled && isSponsorsPage) || (!isSponsorsPage && isScrolled) ? '5%' : '0%',
+          right: (isScrolled && isSponsorsPage) || (!isSponsorsPage && isScrolled) ? '5%' : '0%',
+          width: (isScrolled && isSponsorsPage) || (!isSponsorsPage && isScrolled) ? '90%' : '100%',
+          height: (isScrolled || isSponsorsPage) ? '72px' : '80px'
         }}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
       >
+
         <div className="max-w-[84rem] mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex items-center justify-between h-full">
-            
+
             {/* Logo */}
             <motion.div
               className="flex items-center space-x-3"
@@ -171,7 +177,7 @@ const Navbar = () => {
                   className="transition-all duration-300"
                   style={{ height: '80px', display: 'flex', alignItems: 'center' }}
                 >
-                  <img 
+                  <img
                     src={logo}
                     alt="ACN Logo"
                     onError={(e) => {
@@ -180,9 +186,8 @@ const Navbar = () => {
                       console.log('Attempted logo URL:', imgElement.src);
                     }}
                     onLoad={() => console.log('Logo loaded successfully')}
-                    className={`w-20 h-auto transition-opacity duration-300 ${
-                      isScrolled ? 'opacity-90' : 'opacity-100'
-                    } max-w-none`}
+                    className={`w-20 h-auto transition-opacity duration-300 ${isScrolled ? 'opacity-90' : 'opacity-100'
+                      } max-w-none`}
                     style={{ minWidth: '80px', objectFit: 'contain' }}
                   />
                 </motion.div>
@@ -239,19 +244,18 @@ const Navbar = () => {
                 >
                   <motion.button
                     onClick={() => handleNavigation(item)}
-                    className={`relative font-medium font-roboto transition-all duration-300 px-4 py-2 rounded-full flex items-center space-x-1 ${
-                      isScrolled
+                    className={`relative font-medium font-roboto transition-all duration-300 px-4 py-2 rounded-full flex items-center space-x-1 ${isScrolled
                         ? 'text-white hover:text-white hover:bg-custom-burgundy'
                         : 'text-white hover:text-white hover:bg-custom-burgundy'
-                    }`}
+                      }`}
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                     whileHover={{ scale: 1.05 }}
                   >
                     <span className="whitespace-nowrap">{item.name}</span>
-                    {hasDropdown(item) && (activeDropdown === item.name ? 
-                      <ChevronUp className="w-4 h-4" /> : 
+                    {hasDropdown(item) && (activeDropdown === item.name ?
+                      <ChevronUp className="w-4 h-4" /> :
                       <ChevronDown className="w-4 h-4" />
                     )}
                   </motion.button>
@@ -288,11 +292,10 @@ const Navbar = () => {
 
             {/* Mobile Menu Button */}
             <motion.button
-              className={`lg:hidden p-2 rounded-lg transition-colors duration-300 ${
-                isScrolled
+              className={`lg:hidden p-2 rounded-lg transition-colors duration-300 ${isScrolled
                   ? 'text-white hover:bg-gray-800'
                   : 'text-white hover:bg-white/10'
-              }`}
+                }`}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               whileTap={{ scale: 0.95 }}
             >
@@ -349,7 +352,7 @@ const Navbar = () => {
                             <ChevronDown className="w-4 h-4" />
                           )}
                         </button>
-                        
+
                         <AnimatePresence>
                           {activeMobileDropdown === item.name && (
                             <motion.div

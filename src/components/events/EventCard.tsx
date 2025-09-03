@@ -111,25 +111,20 @@ export default function EventCard({ event }: EventCardProps) {
       whileHover={{ y: -6, scale: 1.02 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
     >
-      <div className="relative h-48 overflow-hidden">
-        {event.image_url ? (
-          <img
-            src={event.image_url}
-            alt={event.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <Users className="h-16 w-16 text-white opacity-50" />
-          </div>
-        )}
-        {isRegistered && (
-          <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center">
-            <Check className="h-3 w-3 mr-1" />
-            Registered
-          </div>
-        )}
-      </div>
+<div className="relative h-48 overflow-hidden">
+  {event.image_url ? (
+    <img
+      src={event.image_url}
+      alt={event.title}
+      className="w-full h-[200%] object-cover object-top transition-transform duration-500 group-hover:scale-110"
+    />
+  ) : (
+    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+      <Users className="h-16 w-16 text-white opacity-50" />
+    </div>
+  )}
+</div>
+
 
       <div className="p-4">
         <div className="flex justify-between items-start mb-2">

@@ -9,7 +9,7 @@ interface NavItem {
   name: string;
   path: string;
   onClick: () => void;
-  dropdown?: Array<{ name: string; path: string; onClick?: () => void }>;
+  dropdown?: Array<{ name: string; path: string }>;
 }
 
 const Navbar = () => {
@@ -42,26 +42,13 @@ const Navbar = () => {
       path: '/',
       onClick: () => navigate('/')
     },
-    { 
-      name: 'Events 4.0', 
-      path: '#events',
-      onClick: () => {
-        if (!isEditionsPage) {
-          const element = document.querySelector('#events');
-          if (element) element.scrollIntoView({ behavior: 'smooth' });
-        } else {
-          navigate('/#events');
-        }
-      },
-      dropdown: [
-        { name: 'Event Registration Portal', path: '/events', onClick: () => navigate('/events') },
-        { name: 'Keynote Sessions', path: '/events#keynote' },
-        { name: 'Technical Workshops', path: '/events#workshops' },
-        { name: 'Panel Discussions', path: '/events#panels' },
-        { name: 'Networking Events', path: '/events#networking' },
-        { name: 'Certification Programs', path: '/events#certification' }
-      ]
-    },
+{
+  name: 'Events 4.0',
+  path: '/events',
+  onClick: () => {
+    navigate('/events'); // works only if your React Router has a <Route path="/events" />
+  },
+},
     { 
       name: 'Editions', 
       path: '/editions',
@@ -170,7 +157,7 @@ const Navbar = () => {
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+        <div className="max-w-[84rem] mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex items-center justify-between h-full">
             
             {/* Logo */}
@@ -182,7 +169,7 @@ const Navbar = () => {
               <div className="relative">
                 <motion.div
                   className="transition-all duration-300"
-                  style={{ height: '75px', display: 'flex', alignItems: 'center' }}
+                  style={{ height: '80px', display: 'flex', alignItems: 'center' }}
                 >
                   <img 
                     src={logo}
@@ -193,10 +180,10 @@ const Navbar = () => {
                       console.log('Attempted logo URL:', imgElement.src);
                     }}
                     onLoad={() => console.log('Logo loaded successfully')}
-                    className={`h-16 w-auto transition-opacity duration-300 ${
+                    className={`w-20 h-auto transition-opacity duration-300 ${
                       isScrolled ? 'opacity-90' : 'opacity-100'
                     } max-w-none`}
-                    style={{ minWidth: '64px', objectFit: 'contain' }}
+                    style={{ minWidth: '80px', objectFit: 'contain' }}
                   />
                 </motion.div>
               </div>
@@ -220,8 +207,7 @@ const Navbar = () => {
                   <span>ACN 4TH EDITION</span>
                   <span>|</span>
                   <motion.button
-                    onClick={() => navigate('/events')}
-                    className="bg-gradient-to-r bg-custom-burgundy text-white px-4 py-1 rounded-full text-sm font-bold font-roboto hover:from-purple-600 hover:to-custom-burgundy transition-all duration-300"
+                    className="bg-gradient-to-r from-custom-burgundy to-purple-600 text-white px-4 py-1 rounded-full text-sm font-bold font-roboto hover:from-purple-600 hover:to-custom-burgundy transition-all duration-300"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -231,8 +217,8 @@ const Navbar = () => {
                   <span>ACN 4TH EDITION</span>
                   <span>|</span>
                   <motion.button
-                    onClick={() => navigate('/events')}
-                    className="bg-gradient-to-r bg-custom-burgundy text-white px-4 py-1 rounded-full text-sm font-bold font-roboto hover:from-purple-600 hover:to-custom-burgundy transition-all duration-300"
+                    className="bg-gradient-to-r from-custom-burgundy to-purple-600 text-white px-4 py-1 rounded-full text-sm font-bold font-roboto hover:from-purple-600 hover:to-custom-burgundy transition-all duration-300"
+
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
                   >

@@ -96,9 +96,9 @@ const SponsorsWeaveMarquee = () => {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10 sm:mb-14">
-          <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm tracking-wide text-[var(--accent)] font-semibold font-roboto backdrop-blur">
+          {/* <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm tracking-wide text-[var(--accent)] font-semibold font-roboto backdrop-blur">
             Powered By
-          </span>
+          </span> */}
           <h2 className="mt-5 text-3xl sm:text-5xl font-extrabold font-roboto text-white leading-tight">
             Our <span className="text-[var(--accent)]">Sponsors</span>
           </h2>

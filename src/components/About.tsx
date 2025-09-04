@@ -42,7 +42,7 @@ const About = () => {
               transition={{ duration: 0.6, delay: 0.3 }}
             >
               <div className="text-center">
-                <div className="text-3xl font-bold font-roboto text-[#b22049]">3rd</div>
+                <div className="text-3xl font-bold font-roboto text-[#b22049]">4th</div>
                 <div className="text-sm text-gray-600 text-[#b22049]">Edition</div>
               </div>
             </motion.div>

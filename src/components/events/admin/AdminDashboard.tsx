@@ -3,7 +3,7 @@ import { X, CheckCircle, XCircle, Loader2, Shield, Download, QrCode, FileText, U
 import QRCode from 'qrcode'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '../../../hooks/useAuth'
-import { useToast } from '../Toast'
+import { useToast, ToastContainer } from '../Toast'
 
 interface AdminDashboardProps {
   isOpen: boolean
@@ -95,7 +95,7 @@ async function loadJsPDF(): Promise<any> {
 
 export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminDashboardProps) {
   const { user } = useAuth()
-  const { addToast } = useToast()
+  const { toasts, addToast, removeToast } = useToast()
 
   // Security states
   const [isAdmin, setIsAdmin] = useState(false)
@@ -1384,6 +1384,9 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
           </div>
         </div>
       )}
+      
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   )
 }

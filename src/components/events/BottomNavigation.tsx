@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { useToast, ToastContainer } from './Toast'
 
 interface BottomNavigationProps {
   activeSection: string
@@ -22,6 +23,7 @@ export default function BottomNavigation({
   isAuthenticated 
 }: BottomNavigationProps) {
   const { user } = useAuth()
+  const { toasts, addToast, removeToast } = useToast()
   const [isAdmin, setIsAdmin] = useState(false)
   
   // Check admin status via database roles (no hardcoded emails)
@@ -38,6 +40,11 @@ export default function BottomNavigation({
         setIsAdmin(!!data)
       } catch (err) {
         console.error('Admin check failed:', err)
+        addToast({
+          type: 'error',
+          title: 'Admin Check Failed',
+          message: 'Unable to verify admin status'
+        })
         setIsAdmin(false)
       }
     }
@@ -114,6 +121,9 @@ export default function BottomNavigation({
           </div>
         </div>
       </div>
+      
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   )
 }

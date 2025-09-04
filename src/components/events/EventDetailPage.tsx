@@ -4,24 +4,21 @@ import { ArrowLeft, Calendar, MapPin, Users, Clock, FileText, CheckCircle, Share
 import { motion } from 'framer-motion'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
-import { useToast } from './Toast'
+import { useToast, ToastContainer } from './Toast'
 
 interface Event {
   id: string
   title: string
   description: string
-  tagline: string
-  image_url: string | null
-  rules: string | null
-  schedule: string | null
-  venue: string | null
-  capacity: number | null
-  price: number | null
-  registration_deadline: string | null
-  contact_email: string | null
-  contact_phone: string | null
-  prerequisites: string | null
-  created_at: string
+  price: number
+  eventDate: string
+  capacity: number
+  venue: string
+  category: string
+  isActive: boolean
+  createdAt: string
+  registrationCount?: number
+  spotsRemaining?: number
 }
 
 export default function EventDetailPage() {
@@ -36,7 +33,7 @@ export default function EventDetailPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showFullDescription, setShowFullDescription] = useState(false)
   const { user } = useAuth()
-  const { addToast } = useToast()
+  const { toasts, addToast, removeToast } = useToast()
 
   const checkProfileComplete = async () => {
     if (!user) return false
@@ -355,7 +352,6 @@ export default function EventDetailPage() {
             </button>
           </div>
 
-          {/* Event Title Overlay - Bottom */}
 {/* Event Title Overlay - Bottom 
 <div className="absolute bottom-28 left-6 right-6 text-white z-10">
   <motion.div
@@ -367,7 +363,6 @@ export default function EventDetailPage() {
     <p className="text-white/90 text-lg m-0">{event.tagline}</p>
   </motion.div>
 </div>*/}
-
         </div>
 
         {/* Right Column - Event Content */}
@@ -379,7 +374,6 @@ export default function EventDetailPage() {
               animate={{ opacity: 1, x: 0 }}
               className="space-y-8"
             >
-
 
               {/* Description */}
               <div className="mb-8 bg-white dark:bg-gray-800/50 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200">
@@ -486,6 +480,25 @@ export default function EventDetailPage() {
                   </div>
                 )}
 
+                {event.capacity && (
+                  <div className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl sm:col-span-2">
+                    <Users className="w-6 h-6 text-primary" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 dark:text-white">Capacity</p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${Math.min((registrationCount / event.capacity) * 100, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          {registrationCount} / {event.capacity}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Prerequisites */}
@@ -502,7 +515,8 @@ export default function EventDetailPage() {
                   </div>
                 </div>
               )}
-                            {/* Registration Button */}
+              
+              {/* Registration Button */}
               <div className="mb-8">
                 <button
                   onClick={handleRegister}
@@ -535,10 +549,12 @@ export default function EventDetailPage() {
           </div>
         </div>
       </div>
-      
 
       {/* Razorpay script will be loaded here */}
       <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
+      
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   )
 }

@@ -13,6 +13,7 @@ import LoginPrompt from './components/events/LoginPrompt'
 import { useAuth } from './hooks/useAuth'
 import { supabase } from './lib/supabase'
 import PaymentPage from './components/events/PaymentPage'
+import useTypewriter from "./hooks/useTypewriter";
 
 interface Event {
   id: string
@@ -30,6 +31,49 @@ interface Event {
   contact_phone: string | null
   prerequisites: string | null
 }
+
+const events = [
+  "Ideate",
+  "ACN Capture The Flag",
+  "Cryptonite",
+  "Cyber Hackathon",
+  "BotBattleX",
+  "Cyber Arena",
+  "Shadow of Hogwarts",
+  "Cinemagic",
+  "Morphx 2.0",
+  "Game Fusion 2.0",
+  "VR Stall",
+  "Internet of Things-Workshop",
+  "Forensic Face-off",
+  "Access Denied",
+];
+
+// Assign fake ports/services dynamically
+const portMap = [
+  { port: "22/tcp", service: "ssh" },
+  { port: "80/tcp", service: "http" },
+  { port: "443/tcp", service: "https" },
+  { port: "3306/tcp", service: "mysql" },
+  { port: "8080/tcp", service: "http-proxy" },
+  { port: "21/tcp", service: "ftp" },
+  { port: "25/tcp", service: "smtp" },
+  { port: "53/tcp", service: "dns" },
+  { port: "110/tcp", service: "pop3" },
+  { port: "995/tcp", service: "pop3s" },
+  { port: "143/tcp", service: "imap" },
+  { port: "465/tcp", service: "smtps" },
+  { port: "3389/tcp", service: "rdp" },
+  { port: "5900/tcp", service: "vnc" },
+];
+
+const nmapResults = events.map((event, i) => {
+  const { port, service } = portMap[i % portMap.length];
+  return `${port.padEnd(8)} open   ${service.padEnd(12)} ${event}`;
+}).join("\n");
+
+
+
 
 function EventsApp() {
   return (
@@ -55,8 +99,52 @@ function HomePage() {
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const { toasts, addToast, removeToast } = useToast()
-  
+
   const { user, loading: authLoading } = useAuth()
+
+  const typedText = useTypewriter(" TECHFEST 4.0", 120);
+
+const [sshDone, setSshDone] = useState(false);
+const [connectedDone, setConnectedDone] = useState(false);
+const [nmapDone, setNmapDone] = useState(false);
+
+const terminalCommand = useTypewriter(
+  " ssh ACN-Techfest@events",
+  100,
+  () => setSshDone(true)
+);
+
+const connectedTerminalCommand = useTypewriter(
+  " Connected to ACN-Techfest@events",
+  100,
+  () => setConnectedDone(true),
+  sshDone
+);
+
+const nmapCommand = useTypewriter(
+  " nmap -A campus-events.org",
+  100,
+  () => setNmapDone(true),
+  connectedDone
+);
+
+const nmapOutput = useTypewriter(
+  `
+Starting Nmap 7.94 ( https://nmap.org ) at 2025-09-04 12:34 IST
+Nmap scan report for campus-events.org
+Host is up (0.042s latency).
+Not shown: 996 filtered ports
+PORT     STATE  SERVICE       EVENT
+${nmapResults}
+
+Nmap done: 1 IP address (1 host up) scanned in 5.67 seconds
+  `,
+  20, // slow scan typing effect
+  undefined,
+  nmapDone
+);
+
+
 
   // Show welcome toast when user logs in
   useEffect(() => {
@@ -111,14 +199,14 @@ function HomePage() {
   const filteredEvents = events.filter(event => {
     if (eventFilter === 'all') return true
     if (eventFilter === 'technical') {
-      return event.title.toLowerCase().includes('tech') || 
-             event.description.toLowerCase().includes('tech') ||
-             event.tagline.toLowerCase().includes('tech')
+      return event.title.toLowerCase().includes('tech') ||
+        event.description.toLowerCase().includes('tech') ||
+        event.tagline.toLowerCase().includes('tech')
     }
     if (eventFilter === 'non-technical') {
-      return !event.title.toLowerCase().includes('tech') && 
-             !event.description.toLowerCase().includes('tech') &&
-             !event.tagline.toLowerCase().includes('tech')
+      return !event.title.toLowerCase().includes('tech') &&
+        !event.description.toLowerCase().includes('tech') &&
+        !event.tagline.toLowerCase().includes('tech')
     }
     return true
   })
@@ -133,12 +221,12 @@ function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
-      <Navbar 
+      <Navbar
         onAuthClick={() => setIsAuthModalOpen(true)}
         onProfileClick={() => setIsProfileOpen(true)}
         onAdminClick={() => setIsAdminOpen(true)}
       />
-      
+
       <main className="pt-24 pb-24 md:pb-8">
         {/* Hero Section */}
         <section id="home" className="px-4 py-20 relative overflow-hidden">
@@ -146,12 +234,12 @@ function HomePage() {
           <div className="absolute inset-0 overflow-hidden tech-grid opacity-10">
             <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float neon-glow"></div>
             <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float neon-glow" style={{ animationDelay: '1s' }}></div>
-            
+
             {/* Matrix-style falling code effect */}
             <div className="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-primary/30 to-transparent animate-matrix-rain opacity-20"></div>
             <div className="absolute top-0 left-3/4 w-px h-full bg-gradient-to-b from-transparent via-secondary/30 to-transparent animate-matrix-rain opacity-20" style={{ animationDelay: '1.5s' }}></div>
           </div>
-          
+
           <div className="max-w-7xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -160,26 +248,68 @@ function HomePage() {
               className="relative z-10"
             >
               <h1 className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
-                <span className="font-mono">&lt;</span>ACN
-                <span className="gradient-text typing-cursor"> TECHFEST 4.0</span><span className="font-mono"> /&gt;</span>
-              </h1>
+  <span className="font-mono">&lt;</span>
+  ACN
+  <span className="bg-gradient-to-b from-green-400 to-black-500 bg-clip-text text-transparent">
+    {typedText}
+    <span className="blinking-cursor bg-gradient-to-b from-green-400 to-black-500 bg-clip-text text-transparent ">_</span>
+  </span>
+  <span className="font-mono"> /&gt;</span>
+</h1>
+
+
               <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed font-mono">
                 <span className="text-primary">const</span> experience = <span className="text-green-400">await</span> connectWith(<span className="text-yellow-400">'events'</span>, <span className="text-yellow-400">'community'</span>);
               </p>
-              <div className="terminal-effect max-w-2xl mx-auto mb-12 text-left">
-                <div className="flex items-center mb-2"><span className="text-red-400">●</span><span className="text-yellow-400 ml-1">●</span><span className="text-green-400 ml-1">●</span><span className="ml-3 text-gray-400 text-xs">campus-events.terminal</span></div>
-                <div><span className="text-green-400">user@campus:~$</span> <span className="text-white">npm start campus-life</span></div>
+             <div className="terminal-effect max-w-2xl mx-auto mb-12 text-left font-mono text-sm">
+              {/* Top bar */}
+              <div className="flex items-center mb-2">
+                <span className="text-red-400">●</span>
+                <span className="text-yellow-400 ml-1">●</span>
+                <span className="text-green-400 ml-1">●</span>
+                <span className="ml-3 text-gray-400 text-xs">campus-events.terminal</span>
               </div>
+
+              {/* SSH */}
+              <div>
+                <span className="text-green-400">user@campus:~$</span>
+                <span className="text-white typing-cursor">{terminalCommand}</span>
+              </div>
+
+              {/* Connected */}
+              <div>
+                <span className="text-green-400">user@campus:~$</span>
+                <span className="text-white typing-cursor">{connectedTerminalCommand}</span>
+              </div>
+
+              {/* Nmap */}
+              <div>
+                <span className="text-green-400">user@campus:~$</span>
+                <span className="text-white typing-cursor">{nmapCommand}</span>
+              </div>
+
+              {/* Nmap Output */}
+              {nmapDone && (
+                <pre className="text-gray-300 whitespace-pre-wrap leading-snug mt-2">
+                  {nmapOutput}
+                </pre>
+              )}
+            </div>
+
+
+
+
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
+                {/* <button
                   onClick={() => scrollToSection('events')}
                   className="btn-primary font-mono"
                 >
                   ./explore --events
-                </button>
+                </button> */}
                 <button
                   onClick={() => scrollToSection('events')}
                   className="btn-secondary font-mono"
+                  style={{ color: "#16a34a" }}
                 >
                   ls ./events/
                 </button>
@@ -217,11 +347,10 @@ function HomePage() {
                   <button
                     key={tab.id}
                     onClick={() => setEventFilter(tab.id as any)}
-                    className={`px-6 py-2 rounded-xl font-medium transition-all duration-200 ${
-                      eventFilter === tab.id
+                    className={`px-6 py-2 rounded-xl font-medium transition-all duration-200 ${eventFilter === tab.id
                         ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg neon-glow font-mono'
                         : 'text-gray-400 hover:text-white hover:bg-gray-800 font-mono'
-                    }`}
+                      }`}
                   >
                     {tab.label}
                   </button>

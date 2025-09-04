@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useToast, ToastContainer } from './Toast'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -17,6 +18,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [error, setError] = useState('')
 
   const { signIn, signUp, signInWithGoogle } = useAuth()
+  const { toasts, addToast, removeToast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,7 +36,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         if (isSignUp) {
           setError('')
           // Show success message for sign up
-          alert('Please check your email for verification link before signing in.')
+          addToast({
+            type: 'success',
+            title: 'Account Created',
+            message: 'Please check your email for verification link before signing in.',
+            duration: 6000
+          })
+        } else {
+          addToast({
+            type: 'success',
+            title: 'Welcome Back!',
+            message: 'You have successfully signed in.'
+          })
         }
         onClose()
         setEmail('')
@@ -56,6 +69,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       if (error) {
         setError(error.message)
       } else {
+        addToast({
+          type: 'success',
+          title: 'Welcome!',
+          message: 'You have successfully signed in with Google.'
+        })
         onClose()
       }
     } catch (err) {
@@ -214,6 +232,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </motion.div>
         </div>
       )}
+      
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </AnimatePresence>
   )
 }

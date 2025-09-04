@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Shield, Plus, Edit, Trash2, Users, X} from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
+import { useToast, ToastContainer } from './Toast'
 
 interface Event {
   id: string
@@ -28,6 +29,7 @@ export default function AdminPanel({ isOpen, onClose, onRefresh }: AdminPanelPro
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
   const [showEventForm, setShowEventForm] = useState(false)
   const { user } = useAuth()
+  const { toasts, addToast, removeToast } = useToast()
 
   // Check if user is admin (you can implement your own admin logic)
   const isAdmin = user?.email?.includes('admin') || user?.email === 'admin@campus.com'
@@ -51,6 +53,11 @@ export default function AdminPanel({ isOpen, onClose, onRefresh }: AdminPanelPro
       setUsers(usersResponse.data?.users || [])
     } catch (error) {
       console.error('Error fetching data:', error)
+      addToast({
+        type: 'error',
+        title: 'Data Load Failed',
+        message: 'Failed to load admin data'
+      })
     } finally {
       // Data loaded
     }
@@ -75,8 +82,18 @@ export default function AdminPanel({ isOpen, onClose, onRefresh }: AdminPanelPro
       onRefresh?.()
       setEditingEvent(null)
       setShowEventForm(false)
+      addToast({
+        type: 'success',
+        title: editingEvent ? 'Event Updated' : 'Event Created',
+        message: editingEvent ? 'Event has been updated successfully' : 'New event has been created successfully'
+      })
     } catch (error) {
       console.error('Error saving event:', error)
+      addToast({
+        type: 'error',
+        title: 'Save Failed',
+        message: 'Failed to save event. Please try again.'
+      })
     }
   }
 
@@ -90,8 +107,18 @@ export default function AdminPanel({ isOpen, onClose, onRefresh }: AdminPanelPro
         .eq('id', id)
       if (error) throw error
       fetchData()
+      addToast({
+        type: 'success',
+        title: 'Event Deleted',
+        message: 'Event has been deleted successfully'
+      })
     } catch (error) {
       console.error('Error deleting event:', error)
+      addToast({
+        type: 'error',
+        title: 'Delete Failed',
+        message: 'Failed to delete event. Please try again.'
+      })
     }
   }
 
@@ -295,6 +322,9 @@ export default function AdminPanel({ isOpen, onClose, onRefresh }: AdminPanelPro
           event={editingEvent}
           onSave={handleSaveEvent}
         />
+        
+        {/* Toast Notifications */}
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
       </div>
     </AnimatePresence>
   )

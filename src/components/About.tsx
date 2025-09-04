@@ -42,8 +42,7 @@ const About = () => {
               transition={{ duration: 0.6, delay: 0.3 }}
             >
               <div className="text-center">
-                <div className="text-3xl font-bold font-roboto text-[#b22049]">4th</div>
-
+                <div className="text-3xl font-bold font-roboto text-[#b22049]">3rd</div>
                 <div className="text-sm text-gray-600 text-[#b22049]">Edition</div>
               </div>
             </motion.div>
@@ -55,12 +54,9 @@ const About = () => {
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-<h2
-  className="text-4xl md:text-5xl font-bold font-poppins mb-6"
-  style={{ color: '#b22049' }}
->
-  About ACN
-</h2>
+          <h2 className="text-4xl md:text-5xl font-bold font-poppins mb-6" style={{ color: '#b22049' }}>
+            About ACN
+          </h2>   
             
             <p className="text-lg text-gray-600 mb-8 leading-relaxed">
               Amrita CyberNation is an annual event dedicated to promoting cyber awareness 

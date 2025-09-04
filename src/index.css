@@ -400,3 +400,29 @@ img {
 .animate-matrix-rain {
   animation: matrix-rain 3s linear infinite;
 }
+
+
+.typing-cursor::after {
+  content: "_";              /* Underscore cursor */
+  display: inline-block;
+  margin-left: 4px;
+  animation: blink 0.8s infinite step-start;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+
+.blinking-cursor {
+  display: inline-block;
+  width: 1ch;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+

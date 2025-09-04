@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import FIRST from '../images/1st.jpg';
+import SECOND from '../images/2nd.jpg';
+import THIRD from '../images/conclave.jpg';
 import "@fontsource/poppins/400.css"; // Regular
 import "@fontsource/poppins/600.css"; // SemiBold
 import "@fontsource/poppins/700.css"; // Bold
-
 
 const Hero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -32,7 +34,7 @@ const Hero = () => {
       title: "ACN 3rd Edition",
       subtitle: "Current Excellence",
       description: "The present milestone - 1000+ participants, cutting-edge cybersecurity insights",
-      image: "/src/images/conclave.jpg",
+      image: THIRD,
       duration: 5000,
       year: "2024"
     },
@@ -41,7 +43,7 @@ const Hero = () => {
       title: "ACN 2nd Edition", 
       subtitle: "Building Momentum",
       description: "Expanded horizons - 750+ participants, international speakers, advanced workshops",
-      image: "/src/images/2nd.jpg",
+      image: SECOND,
       duration: 5000,
       year: "2023"
     },
@@ -50,14 +52,34 @@ const Hero = () => {
       title: "ACN 1st Edition",
       subtitle: "The Beginning of Excellence",
       description: "Where it all started - 500+ participants, 12 sessions of cybersecurity awareness",
-      image: "/src/images/1st.jpg",
+      image: FIRST,
       duration: 5000,
       year: "2022"
     }
+   /* {
+      id: 5,
+      title: "2025 Distinguished Guests",
+      subtitle: "Industry Leaders",
+      description: "Meet the cybersecurity experts shaping our future",
+      image: "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg",
+      duration: 10000,
+      hasGuests: true
+    }*/
   ];
 
-  
-  // Countdown timer logic
+
+  // Auto-advance slides
+  useEffect(() => {
+    const advanceSlide = () => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    };
+
+    const timer = setTimeout(advanceSlide, slides[currentSlide].duration || 5000);
+
+    return () => clearTimeout(timer);
+  }, [currentSlide]);
+
+  // Countdown timer for slides with hasCountdown
   useEffect(() => {
     if (slides[currentSlide].hasCountdown) {
       const targetYear = slides[currentSlide].year === '2025' ? '2025-09-16T08:00:00' : '2024-12-31T23:59:59';
@@ -82,16 +104,6 @@ const Hero = () => {
     }
   }, [currentSlide]);
 
-  // Auto-advance slides
-  useEffect(() => {
-    const advanceSlide = () => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    };
-
-    const timer = setTimeout(advanceSlide, slides[currentSlide].duration || 5000);
-
-    return () => clearTimeout(timer);
-  }, [currentSlide]);
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   const goToSlide = (index: number) => setCurrentSlide(index);
@@ -139,12 +151,12 @@ const Hero = () => {
                   <span className="text-sm font-semibold">{slide.year}</span>
                 </div>
 
-
                 {/* Slide Title */}
                 <h1 className="text-4xl md:text-6xl font-poppins font-bold mb-4">{slide.title}</h1>
                 <h2 className="text-xl md:text-2xl font-poppins font-semibold text-blue-200 mb-4">{slide.subtitle}</h2>
                 <p className="text-lg text-white/90 max-w-2xl mx-auto leading-relaxed mb-8">{slide.description}</p>
-                                {/* Countdown Timer */}
+
+                {/* Countdown Timer */}
                 {slide.hasCountdown && (
                   <motion.div
                     className="mb-6 sm:mb-8 w-full px-2"
@@ -153,7 +165,7 @@ const Hero = () => {
                     transition={{ duration: 0.6, delay: 0.9 }}
                   >
                     <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 sm:p-4 w-full max-w-2xl mx-auto">
-                      <h3 className="text-custom-burgundy text-base sm:text-lg font-semibold font-roboto mb-3 sm:mb-4">
+                      <h3 className="text-custom-burgundy text-base sm:text-lg font-semibold font-poppins mb-3 sm:mb-4">
                         Event Countdown
                       </h3>
                       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4">
@@ -170,7 +182,7 @@ const Hero = () => {
                             animate={{ scale: [1, 1.05, 1] }}
                             transition={{ duration: 1, repeat: Infinity, delay: index * 0.1 }}
                           >
-                            <div className="text-lg sm:text-xl md:text-2xl font-bold font-roboto text-white">
+                            <div className="text-lg sm:text-xl md:text-2xl font-bold font-poppins text-white">
                               {item.value.toString().padStart(2, '0')}
                             </div>
                             <div className="text-custom-burgundy text-xs sm:text-sm">{item.label}</div>
@@ -200,8 +212,7 @@ const Hero = () => {
       {/* Navigation Controls */}
       <button
         onClick={prevSlide}
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 p-3 bg-white/20 hover:bg-white/30 text-white rounded-full backdrop-blur-sm transition-colors duration-300"
-      >
+        className="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 p-3 bg-white/20 hover:bg-white/30 text-white rounded-full backdrop-blur-sm transition-colors duration-300">
         <ChevronLeft className="w-6 h-6" />
       </button>
       <button

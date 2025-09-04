@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { User, Calendar, CreditCard, QrCode, Download, X, Loader2 } from 'lucide-react'
+import { User, Calendar, CreditCard, QrCode, Download, X, Loader2, ArrowRight, CheckCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
+import { useLocation } from 'react-router-dom'
+import { useToast, ToastContainer } from './Toast'
 
 interface Registration {
   id: string
@@ -27,6 +29,10 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
   const [loading, setLoading] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null)
   const { user } = useAuth()
+  const { toasts, addToast, removeToast } = useToast()
+  const location = useLocation()
+  const returnPath = (location.state as any)?.returnTo
+  const returnEventTitle = (location.state as any)?.returnEventTitle
 
   // Profile fields
   const [profile, setProfile] = useState<any>({ 
@@ -83,6 +89,11 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
       })
     } catch (error) {
       setProfileError('Failed to load profile')
+      addToast({
+        type: 'error',
+        title: 'Profile Load Failed',
+        message: 'Failed to load your profile information'
+      })
     } finally {
       setProfileLoading(false)
     }
@@ -106,6 +117,17 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
     setProfileSuccess('')
     try {
       if (!user?.id) throw new Error('No user')
+      
+      // Check if required fields are filled
+      const requiredFields = ['name', 'phone', 'rollno', 'branch']
+      const missingFields = requiredFields.filter(field => !profile[field]?.trim())
+      
+      if (missingFields.length > 0) {
+        setProfileError(`Please fill in required fields: ${missingFields.join(', ')}`)
+        setProfileLoading(false)
+        return
+      }
+      
       const { error } = await supabase
         .from('profiles')
         .upsert({
@@ -122,9 +144,33 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           avatar_url: profile.avatar_url,
         })
       if (error) throw error
-      setProfileSuccess('Profile updated successfully!')
+      
+      const isComplete = profile.name && profile.phone && profile.rollno && profile.branch
+      if (returnPath && isComplete) {
+        setProfileSuccess('Profile completed! Redirecting to payment...')
+        addToast({
+          type: 'success',
+          title: 'Profile Complete!',
+          message: 'Profile completed! Redirecting to payment...'
+        })
+        setTimeout(() => {
+          onClose()
+        }, 1500)
+      } else {
+        setProfileSuccess('Profile updated successfully!')
+        addToast({
+          type: 'success',
+          title: 'Profile Updated',
+          message: 'Your profile has been updated successfully!'
+        })
+      }
     } catch (error) {
       setProfileError('Failed to update profile')
+      addToast({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update your profile. Please try again.'
+      })
     } finally {
       setProfileLoading(false)
     }
@@ -162,6 +208,11 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
       setRegistrations(formattedData)
     } catch (error) {
       console.error('Error fetching registrations:', error)
+      addToast({
+        type: 'error',
+        title: 'Load Failed',
+        message: 'Failed to load your event registrations'
+      })
     } finally {
       setLoading(false)
     }
@@ -253,6 +304,34 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
 
           <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
             <div className="p-6">
+              {/* Return Path Notification */}
+              {returnPath && returnEventTitle && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center">
+                      <ArrowRight className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                        Complete your profile to register for: <span className="font-bold">{returnEventTitle}</span>
+                      </h3>
+                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                        Fill in the required fields below (Name, Phone, Roll No, Branch) to continue with payment.
+                      </p>
+                    </div>
+                    <CheckCircle className={`w-6 h-6 ${
+                      profile.name && profile.phone && profile.rollno && profile.branch 
+                        ? 'text-green-500' 
+                        : 'text-gray-300 dark:text-gray-600'
+                    }`} />
+                  </div>
+                </motion.div>
+              )}
+              
               {/* Profile Section */}
               <div className="mb-8 card p-6">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Profile Details</h3>
@@ -644,6 +723,9 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
             </div>
           </div>
         </motion.div>
+        
+        {/* Toast Notifications */}
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
       </div>
     </AnimatePresence>
   )

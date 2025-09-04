@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useToast, ToastContainer } from './Toast'
 import { ArrowLeft, Upload, QrCode, Loader2, User, Mail, IdCard, Users, AlertCircle } from 'lucide-react'
-import { validateRollNumber, validateEmail, validateName } from '../../utils/validation'
+import { validateRollNumber, validateEmail, validateName, getRollNumberHelpText } from '../../utils/validation'
 
 interface EventData {
   id: string
@@ -97,7 +97,7 @@ async function compressImage(file: File, options?: { maxWidth?: number; maxHeigh
   return { blob, sizeKB: finalSizeKB }
 }
 
-export default function EnhancedPaymentPage() {
+export default function PaymentPage() {
   const { eventId } = useParams<{ eventId: string }>()
   const navigate = useNavigate()
   const location = useLocation() as any
@@ -125,23 +125,6 @@ export default function EnhancedPaymentPage() {
   const [emailError, setEmailError] = useState('')
   const [rollNoError, setRollNoError] = useState('')
 
-  // Validation functions
-  const validateRollNumber = (rollNo: string) => {
-    if (!rollNo.trim()) return true // Optional field
-    const pattern = /^[A-Za-z]{2}\.[A-Za-z]{2}\.U4[A-Za-z]{3}[0-9]{5}$/i
-    return pattern.test(rollNo.trim())
-  }
-
-  const validateEmail = (email: string) => {
-    const pattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
-    return pattern.test(email) && email.length <= 254 && !email.includes('..')
-  }
-
-  const validateName = (name: string) => {
-    const pattern = /^[A-Za-z\s\-']{2,50}$/
-    return pattern.test(name.trim()) && !name.includes('  ') && name.trim().length >= 2
-  }
-
   // Real-time validation
   const handleNameChange = (value: string) => {
     setName(value)
@@ -164,7 +147,7 @@ export default function EnhancedPaymentPage() {
   const handleRollNoChange = (value: string) => {
     setRollNo(value)
     if (value && !validateRollNumber(value)) {
-      setRollNoError('Format: XX.XX.U4XXX00000 (e.g., CH.EN.U4CYS22001)')
+      setRollNoError(getRollNumberHelpText())
     } else {
       setRollNoError('')
     }
@@ -246,6 +229,37 @@ export default function EnhancedPaymentPage() {
     }
     init()
   }, [eventId, user?.id])
+
+  // Refresh profile data when user returns to the page (e.g., from profile page)
+  useEffect(() => {
+    const handleFocus = async () => {
+      if (user?.id && eventId) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name, rollno')
+            .eq('id', user.id)
+            .maybeSingle()
+          
+          if (profile?.name && profile.name !== name) {
+            setName(profile.name)
+            addToast({
+              type: 'success',
+              title: 'Profile Updated!',
+              message: 'Your profile information has been loaded.',
+              duration: 3000
+            })
+          }
+          if (profile?.rollno && profile.rollno !== rollNo) setRollNo(profile.rollno)
+        } catch (e) {
+          console.error('Error refreshing profile:', e)
+        }
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [user?.id, eventId, name, rollNo])
 
   const amount = useMemo(() => {
     return event?.price ?? location?.state?.amount ?? 0
@@ -377,7 +391,7 @@ export default function EnhancedPaymentPage() {
       const screenshot_path = path
 
       // Insert record with pending status and additional metadata
-      const { error: insErr } = await supabase.from('payment_proofs').insert({
+      let insertData = {
         user_id: user.id,
         user_email: user.email,
         event_id: eventId,
@@ -392,17 +406,71 @@ export default function EnhancedPaymentPage() {
         transaction_number: transactionNumber,
         file_size_bytes: file.size,
         file_type: file.type
-      })
-      if (insErr) throw insErr
-
-      addToast({ 
-        type: 'success', 
-        title: 'Submitted', 
-        message: `Payment proof uploaded to ${actualQrId}/Transaction #${transactionNumber}. Awaiting verification.` 
+      }
+      
+      // Debug: Log what we're about to submit
+      console.log('About to submit payment proof:', {
+        rollNumber: rollNo,
+        rollNumberLength: rollNo?.length || 0,
+        frontendValidation: rollNo ? validateRollNumber(rollNo) : 'empty',
+        name: name,
+        email: email
       })
       
-      // Return to event page
-      navigate(`/event/${eventId}`)
+      const { error: insErr } = await supabase.from('payment_proofs').insert(insertData)
+      
+      if (insErr) {
+        console.error('Database insertion error:', {
+          code: insErr.code,
+          message: insErr.message,
+          details: insErr.details,
+          hint: insErr.hint,
+          rollNumber: rollNo,
+          insertData: { ...insertData, roll_no: '***' } // Hide personal data in logs
+        })
+        
+        // Handle specific roll number validation error with fallback
+        if (insErr.message?.includes('roll number format') || 
+            insErr.message?.includes('Invalid roll number') ||
+            (insErr.code === 'P0001' && insErr.message?.includes('roll'))) {
+          
+          console.warn('Roll number validation failed, retrying without roll number:', rollNo)
+          addToast({
+            type: 'warning',
+            title: 'Roll Number Format Issue',
+            message: `Database rejected roll number format. Retrying without roll number...`,
+            duration: 4000
+          })
+          
+          // Retry without roll number
+          const { error: retryErr } = await supabase.from('payment_proofs').insert({
+            ...insertData,
+            roll_no: null
+          })
+          
+          if (retryErr) {
+            console.error('Retry without roll number also failed:', retryErr)
+            throw new Error(`Payment submission failed: ${retryErr.message}`)
+          } else {
+            console.log('Successfully submitted without roll number')
+          }
+        } else {
+          throw new Error(`Database error: ${insErr.message || 'Unknown error occurred'}`)
+        }
+      }
+
+      const rollNoMessage = rollNo && !insErr ? ` (Roll: ${rollNo})` : ''
+      addToast({ 
+        type: 'success', 
+        title: 'Payment Submitted Successfully!', 
+        message: `Your payment proof has been uploaded successfully${rollNoMessage}. Transaction #${transactionNumber}. We will verify your payment and notify you soon.`,
+        duration: 4000
+      })
+      
+      // Delay navigation to allow toast to show
+      setTimeout(() => {
+        navigate(`/event/${eventId}`)
+      }, 3000)
     } catch (err: any) {
       console.error(err)
       addToast({ type: 'error', title: 'Upload failed', message: err?.message || 'Could not submit proof' })
@@ -481,7 +549,7 @@ export default function EnhancedPaymentPage() {
               <div className="mb-6">
                 <h2 className="text-2xl md:text-3xl font-bold">{eventTitle}</h2>
                 <p className="text-white/80 mt-1">Amount: <span className="font-semibold">₹{amount || 0}</span></p>
-                <p className="text-xs text-green-300 mt-2">✅ Enhanced with security validation</p>
+                <p className="text-xs text-green-300 mt-2">✅ Enhanced with flexible validation for all colleges</p>
               </div>
 
               {step === 1 && (
@@ -531,7 +599,7 @@ export default function EnhancedPaymentPage() {
                         <IdCard className="w-4 h-4 text-white/70 mr-2" />
                         <input
                           className="bg-transparent outline-none w-full py-3 placeholder-white/60"
-                          placeholder="Roll No (XX.XX.U4XXX00000)"
+                          placeholder="Roll No (Optional - e.g., CH.EN.U4CYS22001, 19BCE001)"
                           value={rollNo}
                           onChange={(e) => handleRollNoChange(e.target.value)}
                         />
@@ -626,9 +694,12 @@ export default function EnhancedPaymentPage() {
                       style={{ backgroundColor: '#b22049', color: 'white' }}
                     >
                       {submitting ? (
-                        <span className="inline-flex items-center"><Loader2 className="w-4 h-4 animate-spin mr-2" /> Submitting...</span>
+                        <span className="inline-flex items-center">
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" /> 
+                          Uploading payment proof...
+                        </span>
                       ) : (
-                        'Submit Proof'
+                        'Submit Payment Proof'
                       )}
                     </button>
                   </div>

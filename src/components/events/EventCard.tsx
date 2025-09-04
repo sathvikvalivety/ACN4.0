@@ -123,8 +123,13 @@ export default function EventCard({ event }: EventCardProps) {
       <Users className="h-16 w-16 text-white opacity-50" />
     </div>
   )}
+  {isRegistered && (
+    <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center">
+      <Check className="h-3 w-3 mr-1" />
+      Registered
+    </div>
+  )}
 </div>
-
 
       <div className="p-4">
         <div className="flex justify-between items-start mb-2">

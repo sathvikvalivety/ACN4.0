@@ -3,6 +3,7 @@ import { Menu, X, User, LogOut, Shield } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { motion, AnimatePresence } from 'framer-motion'
 import DarkModeToggle from './DarkModeToggle'
+import { useToast, ToastContainer } from './Toast'
 
 interface NavbarProps {
   onAuthClick: () => void
@@ -14,6 +15,7 @@ export default function EventsNavbar({ onAuthClick, onProfileClick, onAdminClick
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { user, signOut } = useAuth()
+  const { toasts, addToast, removeToast } = useToast()
   // Admin emails list (same as AdminDashboard)
   const adminEmails = [
     'admin@acn.com',
@@ -33,7 +35,20 @@ export default function EventsNavbar({ onAuthClick, onProfileClick, onAdminClick
   }, [])
 
   const handleSignOut = async () => {
-    await signOut()
+    try {
+      await signOut()
+      addToast({
+        type: 'success',
+        title: 'Signed Out',
+        message: 'You have been signed out successfully'
+      })
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'Sign Out Failed',
+        message: 'Failed to sign out. Please try again.'
+      })
+    }
     setIsMobileMenuOpen(false)
   }
 
@@ -65,7 +80,7 @@ export default function EventsNavbar({ onAuthClick, onProfileClick, onAdminClick
 
               {/* Desktop Navigation */}
               <div className="hidden md:flex items-center space-x-6">
-                <NavLink href="/">Home</NavLink>
+                <NavLink href="#home">Home</NavLink>
                 <NavLink href="#events">Events</NavLink>
                 
                 <DarkModeToggle />
@@ -197,6 +212,9 @@ export default function EventsNavbar({ onAuthClick, onProfileClick, onAdminClick
           </AnimatePresence>
         </div>
       </div>
+      
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </motion.nav>
   )
 }

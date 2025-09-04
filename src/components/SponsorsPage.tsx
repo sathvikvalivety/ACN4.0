@@ -19,8 +19,14 @@ import event7 from "../images/Sponsors/MRF.jpg";
 import event8 from "../images/Sponsors/Quick_Heal.png";
 import event9 from "../images/Sponsors/Skills_Da.png";
 import event10 from "../images/Sponsors/TCS.png";
+import Navbar from "./Navbar";
+import Footer from "./Footer";
+import { useEffect } from "react";
 
 const SponsorsPage = () => {
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+  }, []);
   const goldSponsors = [gold1, gold2, gold3, gold4, gold5];
   const eventSupporters = [
     event1,
@@ -56,81 +62,85 @@ const SponsorsPage = () => {
   };
 
   return (
-    <div className="min-h-[50rem] bg-gradient-to-br from-gray-800 via-gray-900 to-black pt-24 pb-20 px-4 sm:px-6 lg:px-8 mb-0">
-      {/* Title Section */}
-      <div className="text-center mb-16 max-w-4xl mx-auto">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-5xl font-extrabold text-white tracking-tight sm:text-6xl"
-        >
-          Our Sponsors
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="mt-4 text-lg text-gray-300 max-w-2xl mx-auto"
-        >
-          We are grateful for the incredible support from our Gold Sponsors and Event Supporters.
-        </motion.p>
+    <>
+      <Navbar />
+      <div className="min-h-[50rem] bg-gradient-to-br from-gray-800 via-gray-900 to-black pt-24 pb-20 px-4 sm:px-6 lg:px-8 mb-0">
+        {/* Title Section */}
+        <div className="text-center mb-16 max-w-4xl mx-auto">
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-5xl font-extrabold text-white tracking-tight sm:text-6xl"
+          >
+            Our Sponsors
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="mt-4 text-lg text-gray-300 max-w-2xl mx-auto"
+          >
+            We are grateful for the incredible support from our Gold Sponsors and Event Supporters.
+          </motion.p>
+        </div>
+
+        {/* Gold Sponsors Section */}
+        <section className="mb-20">
+          <h2 className="text-3xl font-bold text-yellow-400 mb-10 text-center">
+            🌟 Gold Sponsors
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 justify-items-center max-w-6xl mx-auto">
+            {goldSponsors.map((logo, idx) => (
+              <motion.div
+                key={idx}
+                custom={idx}
+                initial="hidden"
+                animate="visible"
+                whileHover="hover"
+                variants={cardVariants}
+                className="bg-gray-800 p-6 rounded-lg shadow-[4px_4px_12px_rgba(0,0,0,0.4),-4px_-4px_12px_rgba(255,255,255,0.05)] flex items-center justify-center w-48 h-32"
+              >
+                <img
+                  src={logo}
+                  alt={`Gold Sponsor ${idx + 1}`}
+                  className="max-h-20 object-contain"
+                  loading="lazy"
+                />
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* Event Supporters Section */}
+        <section>
+          <h2 className="text-3xl font-bold text-blue-400 mb-10 text-center">
+            🤝 Event Supporters
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 justify-items-center max-w-6xl mx-auto">
+            {eventSupporters.map((logo, idx) => (
+              <motion.div
+                key={idx}
+                custom={idx}
+                initial="hidden"
+                animate="visible"
+                whileHover="hover"
+                variants={cardVariants}
+                className="bg-gray-800 p-5 rounded-lg shadow-[4px_4px_12px_rgba(0,0,0,0.4),-4px_-4px_12px_rgba(255,255,255,0.05)] flex items-center justify-center w-40 h-24"
+              >
+                <img
+                  src={logo}
+                  alt={`Event Supporter ${idx + 1}`}
+                  className="max-h-16 object-contain"
+                  loading="lazy"
+                />
+              </motion.div>
+            ))}
+          </div>
+        </section>
       </div>
-
-      {/* Gold Sponsors Section */}
-      <section className="mb-20">
-        <h2 className="text-3xl font-bold text-yellow-400 mb-10 text-center">
-          🌟 Gold Sponsors
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 justify-items-center max-w-6xl mx-auto">
-          {goldSponsors.map((logo, idx) => (
-            <motion.div
-              key={idx}
-              custom={idx}
-              initial="hidden"
-              animate="visible"
-              whileHover="hover"
-              variants={cardVariants}
-              className="bg-gray-800 p-6 rounded-lg shadow-[4px_4px_12px_rgba(0,0,0,0.4),-4px_-4px_12px_rgba(255,255,255,0.05)] flex items-center justify-center w-48 h-32"
-            >
-              <img
-                src={logo}
-                alt={`Gold Sponsor ${idx + 1}`}
-                className="max-h-20 object-contain"
-                loading="lazy"
-              />
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Event Supporters Section */}
-      <section>
-        <h2 className="text-3xl font-bold text-blue-400 mb-10 text-center">
-          🤝 Event Supporters
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 justify-items-center max-w-6xl mx-auto">
-          {eventSupporters.map((logo, idx) => (
-            <motion.div
-              key={idx}
-              custom={idx}
-              initial="hidden"
-              animate="visible"
-              whileHover="hover"
-              variants={cardVariants}
-              className="bg-gray-800 p-5 rounded-lg shadow-[4px_4px_12px_rgba(0,0,0,0.4),-4px_-4px_12px_rgba(255,255,255,0.05)] flex items-center justify-center w-40 h-24"
-            >
-              <img
-                src={logo}
-                alt={`Event Supporter ${idx + 1}`}
-                className="max-h-16 object-contain"
-                loading="lazy"
-              />
-            </motion.div>
-          ))}
-        </div>
-      </section>
-    </div>
+      <Footer />
+    </>
   );
 };
 

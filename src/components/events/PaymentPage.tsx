@@ -180,72 +180,82 @@ export default function EnhancedPaymentPage() {
   }, [])
 
   // Prefill from auth/profile and load event + active QR
-  useEffect(() => {
-    const init = async () => {
-      if (!eventId) return
-      setLoading(true)
-      try {
-        // Load event data
-        const { data: ev, error: evErr } = await supabase
-          .from('events')
-          .select('id, title, price')
-          .eq('id', eventId)
-          .single()
-        
-        if (evErr) throw evErr
-        setEvent(ev as EventData)
+useEffect(() => {
+  const init = async () => {
+    if (!eventId) return
+    setLoading(true)
+    try {
+      // Load event data
+      const { data: ev, error: evErr } = await supabase
+        .from('events')
+        .select('id, title, price')
+        .eq('id', eventId)
+        .single()
+      
+      if (evErr) throw evErr
+      setEvent(ev as EventData)
 
-        // Get active QR code for this event
-        const { data: qrData, error: qrErr } = await supabase.rpc('get_active_qr_code', {
-          event_uuid: eventId
-        })
-        
-        if (qrErr) {
-          console.error('QR load error:', qrErr)
-          // Fallback to old method if new function doesn't exist
-          const { data: fallbackQr } = await supabase
-            .from('qr_codes')
-            .select('qr_code_id, upi_intent, qr_image_url, payee_name')
-            .eq('event_id', eventId)
-            .maybeSingle()
-          
-          if (fallbackQr) {
-            setQr({
-              qr_code_id: fallbackQr.qr_code_id || 'QR001',
-              qr_image_url: fallbackQr.qr_image_url,
-              upi_intent: fallbackQr.upi_intent,
-              payee_name: fallbackQr.payee_name,
-              transaction_count: 0,
-              max_transactions: 20,
-              transactions_remaining: 20
-            })
-          }
-        } else if (qrData && qrData.length > 0) {
-          setQr(qrData[0])
-        }
-
-        // Prefill user data
-        if (user?.email) setEmail(user.email)
-        if (user?.id) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('name, rollno')
-            .eq('id', user.id)
-            .maybeSingle()
-          
-          if (profile?.name) setName(profile.name)
-          if (profile?.rollno) setRollNo(profile.rollno)
-        }
-
-      } catch (e) {
-        console.error(e)
-        addToast({ type: 'error', title: 'Load failed', message: 'Unable to load event/payment data' })
-      } finally {
-        setLoading(false)
+      // Ensure we have a userId from profiles
+      let userId = user?.id
+      if (!userId && user?.email) {
+        const { data: profileRow } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', user.email)
+          .maybeSingle()
+        if (profileRow?.id) userId = profileRow.id
       }
+
+      // 🔹 Call your QR code generation function
+      let upiLink = ''
+      if (userId) {
+        const { data: upiData, error: upiErr } = await supabase.rpc('qr_code_gen', {
+          p_event_id: eventId,
+          p_user_id: userId
+        })
+
+        if (upiErr) {
+          console.error('QR generation error:', upiErr)
+        } else {
+          upiLink = upiData as string // Assuming the function returns text
+        }
+      }
+
+      // Set QR state for rendering
+      setQr({
+        qr_code_id: 'generated', // placeholder, actual ID not needed for display
+        qr_image_url: null,
+        upi_intent: upiLink,
+        payee_name: '', // optional
+        transaction_count: 0,
+        max_transactions: 20,
+        transactions_remaining: 20
+      })
+
+      // Prefill user data
+      if (user?.email) setEmail(user.email)
+      if (userId) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name, rollno')
+          .eq('id', userId)
+          .maybeSingle()
+        
+        if (profile?.name) setName(profile.name)
+        if (profile?.rollno) setRollNo(profile.rollno)
+      }
+
+    } catch (e) {
+      console.error(e)
+      addToast({ type: 'error', title: 'Load failed', message: 'Unable to load event/payment data' })
+    } finally {
+      setLoading(false)
     }
-    init()
-  }, [eventId, user?.id])
+  }
+  init()
+}, [eventId, user?.id])
+
+
 
   const amount = useMemo(() => {
     return event?.price ?? location?.state?.amount ?? 0
@@ -255,12 +265,12 @@ export default function EnhancedPaymentPage() {
     return event?.title ?? location?.state?.eventTitle ?? 'Selected Event'
   }, [event, location?.state])
 
-  const qrUrl = useMemo(() => {
-    // Priority: explicit QR image -> UPI intent -> fallback to title
-    if (qr?.qr_image_url) return qr.qr_image_url
-    const data = qr?.upi_intent || `Payment for ${eventTitle}`
-    return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(data)}`
-  }, [qr, eventTitle])
+const qrUrl = useMemo(() => {
+  if (!qr) return ''
+  const data = qr.upi_intent || `Payment for ${eventTitle}`
+  return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(data)}`
+}, [qr, eventTitle])
+
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault()
@@ -558,18 +568,20 @@ export default function EnhancedPaymentPage() {
                     </div>
                   </div>
                   <div className="pt-4 flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={!name || !email || nameError || emailError || rollNoError}
-                      className={`px-6 py-3 rounded-lg font-semibold ${
-                        !name || !email || nameError || emailError || rollNoError 
-                          ? 'opacity-50 cursor-not-allowed bg-gray-600' 
-                          : 'hover:bg-[#a01e42]'
-                      }`}
-                      style={{ backgroundColor: !name || !email || nameError || emailError || rollNoError ? undefined : '#b22049', color: 'white' }}
-                    >
-                      Continue to Payment
-                    </button>
+<button
+  type="submit"
+  disabled={!name || !email || !!nameError || !!emailError || !!rollNoError}
+  className={`px-6 py-3 rounded-lg font-semibold ${
+    !name || !email || !!nameError || !!emailError || !!rollNoError 
+      ? 'opacity-50 cursor-not-allowed bg-gray-600' 
+      : 'hover:bg-[#a01e42]'
+  }`}
+  style={{ backgroundColor: !name || !email || !!nameError || !!emailError || !!rollNoError ? undefined : '#b22049', color: 'white' }}
+>
+  Continue to Payment
+</button>
+
+
                   </div>
                 </form>
               )}

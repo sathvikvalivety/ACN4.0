@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { motion, AnimatePresence } from 'framer-motion'
 import DarkModeToggle from './DarkModeToggle'
 import { useToast, ToastContainer } from './Toast'
+import { supabase } from '../../lib/supabase'
 
 interface NavbarProps {
   onAuthClick: () => void
@@ -16,14 +17,35 @@ export default function EventsNavbar({ onAuthClick, onProfileClick, onAdminClick
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { user, signOut } = useAuth()
   const { toasts, addToast, removeToast } = useToast()
-  // Admin emails list (same as AdminDashboard)
-  const adminEmails = [
-    'admin@acn.com',
-    'admin@campus.com', 
-    'aravindkamal74@gmail.com', // Add your admin emails here
-    'superadmin@acn.com'
-  ]
-  const isAdmin = user?.email ? adminEmails.includes(user.email.toLowerCase()) : false
+  
+  // 🔒 Secure admin check using database roles
+  const [isAdmin, setIsAdmin] = useState(false)
+  
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user?.id) {
+        setIsAdmin(false)
+        return
+      }
+      
+      try {
+        // Use RPC function for secure admin check
+        const { data, error } = await supabase.rpc('is_admin')
+        if (error) {
+          console.error('Admin check error:', error)
+          setIsAdmin(false)
+          return
+        }
+        
+        setIsAdmin(!!data)
+      } catch (err) {
+        console.error('Admin check failed:', err)
+        setIsAdmin(false)
+      }
+    }
+    
+    checkAdminStatus()
+  }, [user?.id])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -80,7 +102,7 @@ export default function EventsNavbar({ onAuthClick, onProfileClick, onAdminClick
 
               {/* Desktop Navigation */}
               <div className="hidden md:flex items-center space-x-6">
-                <NavLink href="#home">Home</NavLink>
+                <NavLink href="/">Home</NavLink>
                 <NavLink href="#events">Events</NavLink>
                 
                 <DarkModeToggle />
@@ -148,7 +170,7 @@ export default function EventsNavbar({ onAuthClick, onProfileClick, onAdminClick
                 className="md:hidden border-t border-gray-200/50 dark:border-gray-700/50"
               >
                 <div className="px-6 py-4 space-y-4">
-                  <MobileNavLink href="#home" onClick={() => setIsMobileMenuOpen(false)}>
+                  <MobileNavLink href="/" onClick={() => setIsMobileMenuOpen(false)}>
                     Home
                   </MobileNavLink>
                   <MobileNavLink href="#events" onClick={() => setIsMobileMenuOpen(false)}>

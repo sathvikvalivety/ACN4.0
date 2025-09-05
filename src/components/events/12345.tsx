@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { User, Calendar, CreditCard, QrCode, Download, X, Loader2, ArrowRight, CheckCircle, Edit3, Save, XCircle } from 'lucide-react'
+import { User, Calendar, CreditCard, QrCode, Download, X, Loader2, ArrowRight, CheckCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
@@ -41,15 +41,15 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
     rollno: '', 
     branch: '',
     year: '',
-    college_name: '',
-    state: '',
+    bio: '',
+    interests: '',
+    linkedin: '',
+    github: '',
     avatar_url: ''
   })
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState('')
   const [profileSuccess, setProfileSuccess] = useState('')
-  const [isEditMode, setIsEditMode] = useState(false)
-  const [originalProfile, setOriginalProfile] = useState<any>({})
   const [tickets, setTickets] = useState<any[]>([])
   const [proofs, setProofs] = useState<any[]>([])
   const [ticketsLoading, setTicketsLoading] = useState(false)
@@ -75,24 +75,18 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
         .eq('id', user.id)
         .single()
       if (error) throw error
-      const profileData = data || { 
+      setProfile(data || { 
         name: '', 
         phone: '', 
         rollno: '', 
         branch: '',
         year: '',
-        college_name: '',
-        state: '',
+        bio: '',
+        interests: '',
+        linkedin: '',
+        github: '',
         avatar_url: ''
-      }
-      setProfile(profileData)
-      setOriginalProfile({...profileData})
-      
-      // Auto-enter edit mode if profile is incomplete (for new users or return path)
-      const isIncomplete = !profileData.name || !profileData.phone || !profileData.rollno || !profileData.branch
-      if (isIncomplete || returnPath) {
-        setIsEditMode(true)
-      }
+      })
     } catch (error) {
       setProfileError('Failed to load profile')
       addToast({
@@ -113,19 +107,8 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
     }))
   }
 
-
-  const handleEditClick = () => {
-    setIsEditMode(true)
-    setProfileError('')
-    setProfileSuccess('')
-  }
-
-  const handleCancelEdit = () => {
-    // Restore original profile data
-    setProfile({...originalProfile})
-    setIsEditMode(false)
-    setProfileError('')
-    setProfileSuccess('')
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setProfile({ ...profile, [e.target.name]: e.target.value })
   }
 
   const handleProfileUpdate = async () => {
@@ -154,8 +137,10 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           rollno: profile.rollno,
           branch: profile.branch,
           year: profile.year,
-          college_name: profile.college_name,
-          state: profile.state,
+          bio: profile.bio,
+          interests: profile.interests,
+          linkedin: profile.linkedin,
+          github: profile.github,
           avatar_url: profile.avatar_url,
         })
       if (error) throw error
@@ -178,9 +163,6 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           title: 'Profile Updated',
           message: 'Your profile has been updated successfully!'
         })
-        // Update original profile and exit edit mode
-        setOriginalProfile({...profile})
-        setIsEditMode(false)
       }
     } catch (error) {
       setProfileError('Failed to update profile')
@@ -200,7 +182,7 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
     setLoading(true)
     try {
       const { data, error } = await supabase
-        .from('registrations')
+        .from('eventsregistrations')
         .select(`
           id,
           created_at,
@@ -213,7 +195,7 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
             image_url
           )
         `)
-        .eq('user_id', user.id)
+        .eq('user_email', user.email)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -352,20 +334,7 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               
               {/* Profile Section */}
               <div className="mb-8 card p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Profile Details</h3>
-                  {!isEditMode && (
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={handleEditClick}
-                      className="flex items-center space-x-2 px-3 py-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      <span className="text-sm font-medium">Edit Profile</span>
-                    </motion.button>
-                  )}
-                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Profile Details</h3>
                 
                 {/* Avatar Section */}
                 <div className="flex items-center space-x-4 mb-6">
@@ -380,293 +349,176 @@ export default function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
                       <User className="w-10 h-10 text-white" />
                     )}
                   </div>
-                  <div className="flex-1">
+                  <div>
                     <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
                       {profile?.name || 'Your Name'}
                     </h4>
                     <p className="text-gray-600 dark:text-gray-400">{user?.email}</p>
-                    {(profile?.college_name || profile?.state) && (
-                      <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-                        {profile?.college_name}{profile?.college_name && profile?.state && ' • '}{profile?.state}
-                      </p>
-                    )}
-                    {profile?.branch && profile?.year && (
-                      <p className="text-sm text-gray-500 dark:text-gray-500">
-                        {profile.branch} • {profile.year}
-                      </p>
-                    )}
                   </div>
                 </div>
 
-                {isEditMode ? (
-                  /* Edit Mode - Show Input Fields */
-                  <div className="space-y-6">
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white border-b pb-2">Edit Information</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Full Name *
-                          </label>
-                          <input
-                            type="text"
-                            name="name"
-                            value={profile?.name || ''}
-                            onChange={handleProfileChange}
-                            className="input"
-                            placeholder="Enter your full name"
-                            disabled={profileLoading}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Phone Number *
-                          </label>
-                          <input
-                            type="tel"
-                            name="phone"
-                            value={profile?.phone || ''}
-                            onChange={handleProfileChange}
-                            className="input"
-                            placeholder="Enter your phone number"
-                            disabled={profileLoading}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Roll Number *
-                          </label>
-                          <input
-                            type="text"
-                            name="rollno"
-                            value={profile?.rollno || ''}
-                            onChange={handleProfileChange}
-                            className="input"
-                            placeholder="Enter your roll number"
-                            disabled={profileLoading}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Branch/Department *
-                          </label>
-                          <input
-                            type="text"
-                            name="branch"
-                            value={profile?.branch || ''}
-                            onChange={handleProfileChange}
-                            className="input"
-                            placeholder="e.g., Computer Science"
-                            disabled={profileLoading}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Year of Study
-                          </label>
-                          <select
-                            name="year"
-                            value={profile?.year || ''}
-                            onChange={handleProfileChange}
-                            className="input"
-                            disabled={profileLoading}
-                          >
-                            <option value="">Select Year</option>
-                            <option value="1st Year">1st Year</option>
-                            <option value="2nd Year">2nd Year</option>
-                            <option value="3rd Year">3rd Year</option>
-                            <option value="4th Year">4th Year</option>
-                            <option value="Graduate">Graduate</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            College/University
-                          </label>
-                          <input
-                            type="text"
-                            name="college_name"
-                            value={profile?.college_name || ''}
-                            onChange={handleProfileChange}
-                            className="input"
-                            placeholder="Enter your college name"
-                            disabled={profileLoading}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            State/Location
-                          </label>
-                          <input
-                            type="text"
-                            name="state"
-                            value={profile?.state || ''}
-                            onChange={handleProfileChange}
-                            className="input"
-                            placeholder="e.g., Karnataka, India"
-                            disabled={profileLoading}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Profile Picture URL
-                          </label>
-                          <input
-                            type="url"
-                            name="avatar_url"
-                            value={profile?.avatar_url || ''}
-                            onChange={handleProfileChange}
-                            className="input"
-                            placeholder="https://example.com/photo.jpg"
-                            disabled={profileLoading}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  /* View Mode - Show Profile Information */
-                  <div className="space-y-4">
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white border-b pb-2">Profile Information</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Full Name</p>
-                          <p className="text-gray-900 dark:text-white font-medium">
-                            {profile?.name || 'Not provided'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Phone Number</p>
-                          <p className="text-gray-900 dark:text-white font-medium">
-                            {profile?.phone || 'Not provided'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Roll Number</p>
-                          <p className="text-gray-900 dark:text-white font-medium">
-                            {profile?.rollno || 'Not provided'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Branch/Department</p>
-                          <p className="text-gray-900 dark:text-white font-medium">
-                            {profile?.branch || 'Not provided'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Year of Study</p>
-                          <p className="text-gray-900 dark:text-white font-medium">
-                            {profile?.year || 'Not specified'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">College/University</p>
-                          <p className="text-gray-900 dark:text-white font-medium">
-                            {profile?.college_name || 'Not specified'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">State/Location</p>
-                          <p className="text-gray-900 dark:text-white font-medium">
-                            {profile?.state || 'Not specified'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Error/Success Messages */}
-                <AnimatePresence>
-                  {profileError && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm"
+                {/* Basic Info */}
+                <div className="space-y-4 mb-6">
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white border-b pb-2">Basic Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      name="name"
+                      value={profile?.name || ''}
+                      onChange={handleProfileChange}
+                      className="input"
+                      placeholder="Full Name *"
+                      disabled={profileLoading}
+                    />
+                    <input
+                      type="text"
+                      name="phone"
+                      value={profile?.phone || ''}
+                      onChange={handleProfileChange}
+                      className="input"
+                      placeholder="Phone Number *"
+                      disabled={profileLoading}
+                    />
+                    <input
+                      type="text"
+                      name="rollno"
+                      value={profile?.rollno || ''}
+                      onChange={handleProfileChange}
+                      className="input"
+                      placeholder="Roll Number *"
+                      disabled={profileLoading}
+                    />
+                    <input
+                      type="text"
+                      name="branch"
+                      value={profile?.branch || ''}
+                      onChange={handleProfileChange}
+                      className="input"
+                      placeholder="Branch/Department *"
+                      disabled={profileLoading}
+                    />
+                    <select
+                      name="year"
+                      value={profile?.year || ''}
+                      onChange={handleProfileChange}
+                      className="input"
+                      disabled={profileLoading}
                     >
-                      {profileError}
-                    </motion.div>
-                  )}
-                  {profileSuccess && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-700 dark:text-green-300 text-sm"
-                    >
-                      {profileSuccess}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Action Buttons - Only show in edit mode */}
-                {isEditMode && (
-                  <div className="border-t pt-6 mt-6">
-                    <div className="flex items-center justify-between flex-wrap gap-4">
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          * Required fields for event registration
-                        </p>
-                        {/* Profile Completion Progress */}
-                        <div className="mt-2">
-                          <div className="flex items-center justify-between text-xs mb-1">
-                            <span className="text-gray-500 dark:text-gray-400">Profile Completion</span>
-                            <span className="text-gray-500 dark:text-gray-400">
-                              {[profile?.name, profile?.phone, profile?.rollno, profile?.branch].filter(Boolean).length}/4 required fields
-                            </span>
-                          </div>
-                          <div className="w-40 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                            <div 
-                              className="bg-gradient-to-r from-primary to-primary/80 h-1.5 rounded-full transition-all duration-300" 
-                              style={{
-                                width: `${([profile?.name, profile?.phone, profile?.rollno, profile?.branch].filter(Boolean).length / 4) * 100}%`
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3">
-                        {/* Cancel Button */}
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={handleCancelEdit}
-                          className="flex items-center space-x-2 px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors"
-                          disabled={profileLoading}
-                        >
-                          <XCircle className="w-4 h-4" />
-                          <span>Cancel</span>
-                        </motion.button>
-                        
-                        {/* Save Button */}
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={handleProfileUpdate}
-                          className="btn-primary flex items-center space-x-2"
-                          disabled={profileLoading}
-                        >
-                          {profileLoading ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              <span>Saving...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Save className="w-4 h-4" />
-                              <span>Save Changes</span>
-                            </>
-                          )}
-                        </motion.button>
-                      </div>
-                    </div>
+                      <option value="">Select Year</option>
+                      <option value="1st Year">1st Year</option>
+                      <option value="2nd Year">2nd Year</option>
+                      <option value="3rd Year">3rd Year</option>
+                      <option value="4th Year">4th Year</option>
+                      <option value="Graduate">Graduate</option>
+                    </select>
+                    <input
+                      type="url"
+                      name="avatar_url"
+                      value={profile?.avatar_url || ''}
+                      onChange={handleProfileChange}
+                      className="input"
+                      placeholder="Profile Picture URL"
+                      disabled={profileLoading}
+                    />
                   </div>
-                )}
+                </div>
+
+                {/* Bio Section */}
+                <div className="space-y-4 mb-6">
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white border-b pb-2">About You</h4>
+                  <textarea
+                    name="bio"
+                    value={profile?.bio || ''}
+                    onChange={handleTextareaChange}
+                    className="input resize-none"
+                    rows={3}
+                    placeholder="Tell us about yourself..."
+                    disabled={profileLoading}
+                  />
+                  <textarea
+                    name="interests"
+                    value={profile?.interests || ''}
+                    onChange={handleTextareaChange}
+                    className="input resize-none"
+                    rows={2}
+                    placeholder="Your interests and hobbies..."
+                    disabled={profileLoading}
+                  />
+                </div>
+
+                {/* Social Links */}
+                <div className="space-y-4 mb-6">
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white border-b pb-2">Social Links</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      type="url"
+                      name="linkedin"
+                      value={profile?.linkedin || ''}
+                      onChange={handleProfileChange}
+                      className="input"
+                      placeholder="LinkedIn Profile URL"
+                      disabled={profileLoading}
+                    />
+                    <input
+                      type="url"
+                      name="github"
+                      value={profile?.github || ''}
+                      onChange={handleProfileChange}
+                      className="input"
+                      placeholder="GitHub Profile URL"
+                      disabled={profileLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <input
+                    type="text"
+                    name="name"
+                    value={profile?.name || ''}
+                    onChange={handleProfileChange}
+                    className="input"
+                    placeholder="Name"
+                    disabled={profileLoading}
+                  />
+                  <input
+                    type="text"
+                    name="phone"
+                    value={profile?.phone || ''}
+                    onChange={handleProfileChange}
+                    className="input"
+                    placeholder="Phone Number"
+                    disabled={profileLoading}
+                  />
+                  <input
+                    type="text"
+                    name="rollno"
+                    value={profile?.rollno || ''}
+                    onChange={handleProfileChange}
+                    className="input"
+                    placeholder="Roll Number"
+                    disabled={profileLoading}
+                  />
+                  <input
+                    type="text"
+                    name="branch"
+                    value={profile?.branch || ''}
+                    onChange={handleProfileChange}
+                    className="input"
+                    placeholder="Branch"
+                    disabled={profileLoading}
+                  />
+                  <button
+                    onClick={handleProfileUpdate}
+                    className="btn-primary w-full md:w-auto"
+                    disabled={profileLoading}
+                  >
+                    {profileLoading ? 'Updating Profile...' : 'Save Profile'}
+                  </button>
+                  {profileError && <div className="mt-2 text-red-600 text-sm">{profileError}</div>}
+                  {profileSuccess && <div className="mt-2 text-green-600 text-sm">{profileSuccess}</div>}
+                  <p className="text-xs text-gray-500 mt-2">* Required fields for event registration</p>
+                </div>
               </div>
 
               {/* Events Section */}

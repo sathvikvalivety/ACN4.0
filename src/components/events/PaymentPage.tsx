@@ -22,42 +22,42 @@ interface QRCodeRow {
   transactions_remaining: number
 }
 
-// Client-side image compression with size validation
+// Client-side image compression with size validation (10KB to 2MB)
 async function compressImage(file: File, options?: { maxWidth?: number; maxHeight?: number; maxSizeKB?: number; quality?: number }): Promise<{ blob: Blob; sizeKB: number }> {
-  const maxWidth = options?.maxWidth ?? 1024
-  const maxHeight = options?.maxHeight ?? 1024
-  const maxSizeKB = options?.maxSizeKB ?? 1000 // 1MB max
-  const minSizeKB = 50 // 50KB min
-  let quality = options?.quality ?? 0.8
+  const maxWidth = options?.maxWidth ?? 1024;
+  const maxHeight = options?.maxHeight ?? 1024;
+  const maxSizeKB = options?.maxSizeKB ?? 2048; // 2MB max
+  const minSizeKB = 10; // 10KB min
+  let quality = options?.quality ?? 0.8;
 
   // Check original file size
-  const originalSizeKB = file.size / 1024
+  const originalSizeKB = file.size / 1024;
   if (originalSizeKB < minSizeKB) {
-    throw new Error(`File too small. Minimum size is ${minSizeKB}KB, got ${originalSizeKB.toFixed(1)}KB`)
+    throw new Error(`File too small. Minimum size is ${minSizeKB}KB, got ${originalSizeKB.toFixed(1)}KB`);
   }
   if (originalSizeKB > maxSizeKB) {
-    throw new Error(`File too large. Maximum size is ${maxSizeKB}KB, got ${originalSizeKB.toFixed(1)}KB`)
+    throw new Error(`File too large. Maximum size is ${maxSizeKB}KB, got ${originalSizeKB.toFixed(1)}KB`);
   }
 
   // Check file type
   if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
-    throw new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.')
+    throw new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
   }
 
-  const img = document.createElement('img')
-  const reader = new FileReader()
+  const img = document.createElement('img');
+  const reader = new FileReader();
 
   const loadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
     reader.onload = () => {
-      img.src = reader.result as string
-      img.onload = () => resolve(img)
-      img.onerror = reject
-    }
-    reader.onerror = reject
-  })
+      img.src = reader.result as string;
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
 
-  reader.readAsDataURL(file)
-  await loadPromise
+  reader.readAsDataURL(file);
+  await loadPromise;
 
   const canvas = document.createElement('canvas')
   let { width, height } = img
@@ -76,25 +76,23 @@ async function compressImage(file: File, options?: { maxWidth?: number; maxHeigh
 
   let blob: Blob | null = null
   for (let i = 0; i < 6; i++) {
-    blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
-    if (!blob) break
-    const sizeKB = blob.size / 1024
-    if (sizeKB <= maxSizeKB && sizeKB >= minSizeKB) break
-    quality -= 0.15
-    if (quality < 0.3) break
+    blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (!blob) break;
+    const sizeKB = blob.size / 1024;
+    if (sizeKB <= maxSizeKB && sizeKB >= minSizeKB) break;
+    quality -= 0.15;
+    if (quality < 0.3) break;
   }
 
-  if (!blob) throw new Error('Compression failed')
-  
-  const finalSizeKB = blob.size / 1024
+  if (!blob) throw new Error('Compression failed');
+  const finalSizeKB = blob.size / 1024;
   if (finalSizeKB < minSizeKB) {
-    throw new Error(`Compressed file too small: ${finalSizeKB.toFixed(1)}KB. Minimum: ${minSizeKB}KB`)
+    throw new Error(`Compressed file too small: ${finalSizeKB.toFixed(1)}KB. Minimum: ${minSizeKB}KB`);
   }
   if (finalSizeKB > maxSizeKB) {
-    throw new Error(`Compressed file too large: ${finalSizeKB.toFixed(1)}KB. Maximum: ${maxSizeKB}KB`)
+    throw new Error(`Compressed file too large: ${finalSizeKB.toFixed(1)}KB. Maximum: ${maxSizeKB}KB`);
   }
-
-  return { blob, sizeKB: finalSizeKB }
+  return { blob, sizeKB: finalSizeKB };
 }
 
 export default function EnhancedPaymentPage() {
@@ -610,7 +608,7 @@ const qrUrl = useMemo(() => {
                   </div>
 
                   <div className="space-y-3">
-                    <label className="block text-sm text-white/80">Upload payment screenshot (50KB-1MB, JPEG/PNG/WebP)</label>
+                    <label className="block text-sm text-white/80">Upload payment screenshot (10KB-2MB, JPEG/PNG/WebP)</label>
                     <div className="flex items-center gap-3">
                       <label className="inline-flex items-center px-4 py-2 rounded-lg cursor-pointer border border-white/20 hover:bg-white/10">
                         <Upload className="w-4 h-4 mr-2" />

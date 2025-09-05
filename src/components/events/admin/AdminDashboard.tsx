@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { X, CheckCircle, XCircle, Loader2, Shield, Download, QrCode, FileText, Users, Menu, Plus, Edit, Trash2, Eye, Calendar, MapPin, Phone, Mail, User, IdCard, AlertTriangle, Lock } from 'lucide-react'
+import { X, CheckCircle, XCircle, Loader2, Shield, Download, QrCode, FileText, Users, Menu, Plus, Edit, Trash2, Eye, Calendar, MapPin, Phone, Mail, User, IdCard, AlertTriangle, Lock, RotateCcw } from 'lucide-react'
 import QRCode from 'qrcode'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '../../../hooks/useAuth'
 import { useToast, ToastContainer } from '../Toast'
+import { useQRAdmin } from '../../../hooks/useQRCycling'
 
 interface AdminDashboardProps {
   isOpen: boolean
@@ -13,17 +14,28 @@ interface AdminDashboardProps {
 interface PaymentProof {
   id: string
   user_id: string
-  user_email: string | null
   event_id: string
   event_title: string
   amount: number
-  name: string
-  roll_no: string | null
-  team_members: string | null
-  screenshot_path: string
+  screenshot_url: string
   status: 'pending' | 'approved' | 'rejected'
   reason: string | null
   created_at: string
+  transaction_number: number
+  qr_name: string | null
+  storage_path: string | null
+  ocr_status: 'pending' | 'success' | 'failed'
+  utr_or_ref: string | null
+  qr_code_id: string | null
+  transaction_id: string | null
+  admin_notes: string | null
+  verified_by: string | null
+  verified_at: string | null
+  updated_at: string | null
+  // Fields from profiles table (joined)
+  user_email?: string
+  name?: string
+  roll_no?: string
 }
 
 interface Event {
@@ -106,7 +118,7 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
   const [isBlocked, setIsBlocked] = useState(false)
   
   // UI states
-  const [activeTab, setActiveTab] = useState<'payments' | 'events' | 'tickets' | 'users'>('payments')
+  const [activeTab, setActiveTab] = useState<'payments' | 'events' | 'tickets' | 'users' | 'qr-admin'>('payments')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   
@@ -115,6 +127,16 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
   const [events, setEvents] = useState<Event[]>([])
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [users, setUsers] = useState<UserProfile[]>([])
+  
+  // QR Admin states
+  const { 
+    loading: qrLoading, 
+    stats: qrStats, 
+    loadStats: loadQRStats, 
+    forceResetAllQRs, 
+    runDailyMaintenance, 
+    getQRInsights 
+  } = useQRAdmin()
   
   // Filters
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
@@ -262,7 +284,7 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
         new_data: data
       })
     } catch (err) {
-      console.error('Failed to log security event:', err)
+      // Silently handle security logging errors
     }
   }
 
@@ -278,8 +300,9 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
     
     if (activeTab === 'payments' && hasPermission('can_approve_payments')) loadPayments()
     if (activeTab === 'events' && hasPermission('can_manage_events')) loadEvents()
-    if (activeTab === 'tickets') loadTickets()
+    if (activeTab === 'tickets' && hasPermission('can_view_tickets')) loadTickets()
     if (activeTab === 'users' && hasPermission('can_view_users')) loadUsers()
+    if (activeTab === 'qr-admin' && hasPermission('can_manage_qr_codes')) loadQRStats()
   }, [isOpen, isAdmin, activeTab, paymentFilter, securityCheck, adminRole])
 
   // Data loaders (same as before but with security logging)
@@ -294,21 +317,67 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
     
     setLoading(true)
     try {
-      let query = supabase.from('payment_proofs').select('*').order('created_at', { ascending: false })
+      // First get payment proofs
+      let query = supabase
+        .from('payment_proofs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        
       if (paymentFilter !== 'all') {
         query = query.eq('status', paymentFilter)
       }
-      const { data, error } = await query
-      if (error) throw error
-      setPayments(data || [])
+      
+      const { data: paymentsData, error: paymentsError } = await query
+      if (paymentsError) throw paymentsError
+      
+      if (!paymentsData?.length) {
+        setPayments([])
+        return
+      }
+      
+      // Get user profiles for all payment user_ids
+      const userIds = paymentsData.map(p => p.user_id)
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name, rollno')
+        .in('id', userIds)
+      
+      if (profilesError) {
+        // Silently handle profile loading errors
+      }
+      
+      // Get user emails securely through RPC function
+      const { data: userEmailsData, error: emailsError } = await supabase
+        .rpc('get_admin_user_emails')
+      
+      if (emailsError) {
+        await logSecurityEvent('failed_email_access', {
+          user_id: user?.id,
+          error: emailsError.message
+        })
+      }
+      
+      // Transform the data to include user information
+      const transformedData = paymentsData.map(payment => {
+        const profile = profilesData?.find(p => p.id === payment.user_id)
+        const userEmail = userEmailsData?.find(u => u.user_id === payment.user_id)
+        
+        return {
+          ...payment,
+          name: profile?.name || 'Unknown User',
+          roll_no: profile?.rollno || null,
+          user_email: userEmail?.user_email || `user-${payment.user_id.slice(0, 8)}@secured.local`
+        }
+      })
+      
+      setPayments(transformedData)
       
       await logSecurityEvent('data_access', {
         user_id: user?.id,
         action: 'load_payments',
-        count: data?.length || 0
+        count: transformedData?.length || 0
       })
     } catch (err) {
-      console.error('Failed to load payments:', err)
       addToast({ type: 'error', title: 'Failed to load payments' })
     } finally {
       setLoading(false)
@@ -340,7 +409,6 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
         count: data?.length || 0
       })
     } catch (err) {
-      console.error('Failed to load events:', err)
       addToast({ type: 'error', title: 'Failed to load events' })
     } finally {
       setLoading(false)
@@ -348,6 +416,14 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
   }
 
   const loadTickets = async () => {
+    if (!hasPermission('can_view_tickets')) {
+      await logSecurityEvent('unauthorized_data_access', {
+        user_id: user?.id,
+        attempted_action: 'load_tickets'
+      })
+      return
+    }
+    
     setLoading(true)
     try {
       const { data, error } = await supabase
@@ -364,7 +440,6 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
         count: data?.length || 0
       })
     } catch (err) {
-      console.error('Failed to load tickets:', err)
       addToast({ type: 'error', title: 'Failed to load tickets' })
     } finally {
       setLoading(false)
@@ -390,36 +465,53 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
 
       if (profilesError) throw profilesError
 
-      // Get emails from payment_proofs
-      const { data: authUsers, error: authError } = await supabase
+      // Get user IDs from payment_proofs (no email column exists)
+      const { data: paymentUsers, error: paymentError } = await supabase
         .from('payment_proofs')
-        .select('user_id, user_email')
+        .select('user_id')
 
-      if (authError) console.error('Auth users error:', authError)
+      if (paymentError) {
+        // Silently handle payment users loading error
+      }
 
       // Get registration counts
       const { data: registrations, error: regError } = await supabase
         .from('registrations')
         .select('user_id')
 
-      if (regError) console.error('Registrations error:', regError)
+      if (regError) {
+        // Silently handle registrations loading error
+      }
 
       // Get ticket counts
       const { data: ticketCounts, error: ticketError } = await supabase
         .from('tickets')
         .select('user_id')
 
-      if (ticketError) console.error('Tickets error:', ticketError)
+      if (ticketError) {
+        // Silently handle tickets loading error
+      }
 
+      // Get user emails securely through RPC function
+      const { data: userEmailsData, error: emailsError } = await supabase
+        .rpc('get_admin_user_emails')
+      
+      if (emailsError) {
+        await logSecurityEvent('failed_email_access_users', {
+          user_id: user?.id,
+          error: emailsError.message
+        })
+      }
+      
       // Combine data
       const usersData = profiles?.map(profile => {
-        const paymentProof = authUsers?.find(p => p.user_id === profile.id)
         const regCount = registrations?.filter(r => r.user_id === profile.id).length || 0
         const ticketCount = ticketCounts?.filter(t => t.user_id === profile.id).length || 0
+        const userEmail = userEmailsData?.find(u => u.user_id === profile.id)
         
         return {
           ...profile,
-          email: paymentProof?.user_email || 'Unknown',
+          email: userEmail?.user_email || `user-${profile.id.slice(0, 8)}@secured.local`,
           registrations_count: regCount,
           tickets_count: ticketCount
         }
@@ -433,7 +525,6 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
         count: usersData.length
       })
     } catch (err) {
-      console.error('Failed to load users:', err)
       addToast({ type: 'error', title: 'Failed to load users' })
     } finally {
       setLoading(false)
@@ -484,19 +575,21 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
       doc.setTextColor('#111111')
       doc.setFontSize(14)
       let y = 110
-      const addLine = (label: string, value: string) => {
+      const addLine = (label: string, value: string | null | undefined) => {
         doc.setFont('helvetica', 'bold')
         doc.text(label, 40, y)
         doc.setFont('helvetica', 'normal')
-        doc.text(value, 180, y)
+        // Ensure value is always a string for jsPDF
+        const displayValue = value ? String(value) : '-'
+        doc.text(displayValue, 180, y)
         y += 24
       }
       
       addLine('Ticket Code:', ticketCode)
-      addLine('Event:', payment.event_title)
-      addLine('Holder:', payment.name)
-      addLine('Roll No:', payment.roll_no || '-')
-      addLine('Amount:', `₹${payment.amount}`)
+      addLine('Event:', payment.event_title || 'Unknown Event')
+      addLine('Holder:', payment.name || 'Unknown User')
+      addLine('Roll No:', payment.roll_no)
+      addLine('Amount:', `₹${Number(payment.amount).toFixed(2)}`)
       addLine('Issued:', new Date().toLocaleString())
       
       // QR Code
@@ -553,7 +646,6 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
       loadPayments()
       
     } catch (err: any) {
-      console.error('Approve failed:', err)
       await logSecurityEvent('payment_approval_failed', {
         user_id: user?.id,
         payment_id: payment.id,
@@ -597,7 +689,6 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
       addToast({ type: 'success', title: 'Payment rejected' })
       loadPayments()
     } catch (err: any) {
-      console.error('Reject failed:', err)
       addToast({ type: 'error', title: 'Reject failed', message: err.message })
     }
   }
@@ -810,8 +901,9 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
   const tabs = [
     { id: 'payments', label: 'Payments', icon: QrCode, count: payments.length, permission: 'can_approve_payments' },
     { id: 'events', label: 'Events', icon: FileText, count: events.length, permission: 'can_manage_events' },
-    { id: 'tickets', label: 'Tickets', icon: Download, count: tickets.length, permission: null },
-    { id: 'users', label: 'Users', icon: Users, count: users.length, permission: 'can_view_users' }
+    { id: 'tickets', label: 'Tickets', icon: Download, count: tickets.length, permission: 'can_view_tickets' },
+    { id: 'users', label: 'Users', icon: Users, count: users.length, permission: 'can_view_users' },
+    { id: 'qr-admin', label: 'QR Admin', icon: RotateCcw, count: 0, permission: 'can_manage_qr_codes' }
   ].filter(tab => !tab.permission || hasPermission(tab.permission))
 
   return (
@@ -920,12 +1012,14 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
                     {activeTab === 'events' && '📅 Events Management'}
                     {activeTab === 'tickets' && '🎫 Issued Tickets'}
                     {activeTab === 'users' && '👥 Registered Users'}
+                    {activeTab === 'qr-admin' && '🔄 QR Cycling Dashboard'}
                   </h2>
                   <p className="text-sm text-white/70 mt-1">
                     {activeTab === 'payments' && `${payments.length} payment proofs`}
                     {activeTab === 'events' && `${events.length} events`}
                     {activeTab === 'tickets' && `${tickets.length} tickets issued`}
                     {activeTab === 'users' && `${users.length} registered users`}
+                    {activeTab === 'qr-admin' && '24-Hour QR Rotation System Management'}
                   </p>
                 </div>
                 <button onClick={onClose} className="hidden md:block p-2 rounded-lg hover:bg-white/10">
@@ -992,11 +1086,6 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
                                     {payment.roll_no && <span>{payment.roll_no}</span>}
                                     <span>{new Date(payment.created_at).toLocaleDateString()}</span>
                                   </div>
-                                  {payment.team_members && (
-                                    <p className="text-sm text-white/60 mt-1">
-                                      Team: {payment.team_members}
-                                    </p>
-                                  )}
                                   {payment.reason && (
                                     <p className="text-sm text-red-300 mt-1">
                                       Reason: {payment.reason}
@@ -1111,7 +1200,7 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
                   )}
 
                   {/* TICKETS TAB */}
-                  {activeTab === 'tickets' && (
+                  {activeTab === 'tickets' && hasPermission('can_view_tickets') && (
                     <div>
                       {tickets.length === 0 ? (
                         <div className="text-center py-12">
@@ -1228,6 +1317,246 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
                     </div>
                   )}
 
+                  {/* QR ADMIN TAB */}
+                  {activeTab === 'qr-admin' && hasPermission('can_manage_qr_codes') && (
+                    <div className="space-y-6">
+                      {qrLoading && !qrStats ? (
+                        <div className="bg-white/5 rounded-xl p-8 text-center border border-white/10">
+                          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-400" />
+                          <p className="text-white/70">Loading QR system statistics...</p>
+                        </div>
+                      ) : qrStats ? (
+                        <>
+                          {/* QR System Overview */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-4">
+                              <div className="flex items-center">
+                                <div className="p-2 bg-green-500/20 rounded-lg">
+                                  <span className="text-green-400 text-xl">🟢</span>
+                                </div>
+                                <div className="ml-4">
+                                  <p className="text-sm font-medium text-white/70">Active QRs</p>
+                                  <p className="text-xl font-bold text-white">
+                                    {qrStats.active_qrs || 0}/{qrStats.total_qrs || 0}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-4">
+                              <div className="flex items-center">
+                                <div className="p-2 bg-blue-500/20 rounded-lg">
+                                  <span className="text-blue-400 text-xl">📊</span>
+                                </div>
+                                <div className="ml-4">
+                                  <p className="text-sm font-medium text-white/70">Today's Payments</p>
+                                  <p className="text-xl font-bold text-white">{qrStats.total_daily_payments || 0}</p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-4">
+                              <div className="flex items-center">
+                                <div className="p-2 bg-yellow-500/20 rounded-lg">
+                                  <span className="text-yellow-400 text-xl">🔄</span>
+                                </div>
+                                <div className="ml-4">
+                                  <p className="text-sm font-medium text-white/70">Remaining Slots</p>
+                                  <p className="text-xl font-bold text-white">{qrStats.remaining_daily_capacity || 0}</p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-4">
+                              <div className="flex items-center">
+                                <div className="p-2 bg-purple-500/20 rounded-lg">
+                                  <span className="text-purple-400 text-xl">⏰</span>
+                                </div>
+                                <div className="ml-4">
+                                  <p className="text-sm font-medium text-white/70">Next Reset</p>
+                                  <p className="text-sm font-bold text-white">
+                                    {qrStats.next_auto_reset ? Math.floor((new Date(qrStats.next_auto_reset).getTime() - Date.now()) / (1000 * 60 * 60)) : 0}h until midnight
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* QR Details Table */}
+                          <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden">
+                            <div className="px-6 py-4 border-b border-white/20">
+                              <h3 className="text-lg font-semibold text-white">🎯 QR Status Details</h3>
+                            </div>
+                            
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full divide-y divide-white/20">
+                                <thead className="bg-white/5">
+                                  <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                                      QR Code
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                                      UPI ID
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                                      Daily Progress
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                                      Status
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                                      Remaining
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/10">
+                                  {qrStats.qr_details && qrStats.qr_details.length > 0 ? (
+                                    qrStats.qr_details.map((qr, index) => (
+                                      <tr key={index} className="hover:bg-white/5">
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="font-medium text-white">{qr.qr_name}</div>
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-white/70">{qr.upi_id}</div>
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                          <div className="flex-1 bg-white/20 rounded-full h-2 mr-3">
+                                            <div
+                                              className={`h-2 rounded-full ${
+                                                qr.daily_count >= qr.max_daily_payments 
+                                                  ? 'bg-red-500' 
+                                                  : qr.daily_count >= 15 
+                                                  ? 'bg-yellow-500' 
+                                                  : 'bg-green-500'
+                                              }`}
+                                              style={{ width: `${(qr.daily_count / qr.max_daily_payments) * 100}%` }}
+                                            ></div>
+                                          </div>
+                                          <div className="text-sm font-medium text-white/90">
+                                            {qr.daily_count}/{qr.max_daily_payments}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                          qr.status === 'active' ? 'bg-green-500/20 text-green-300' :
+                                          qr.status === 'temp_disabled' ? 'bg-red-500/20 text-red-300' :
+                                          qr.status === 'unused_today' ? 'bg-blue-500/20 text-blue-300' :
+                                          qr.status === 'full_today' ? 'bg-orange-500/20 text-orange-300' :
+                                          'bg-gray-500/20 text-gray-300'
+                                        }`}>
+                                          {qr.status === 'temp_disabled' ? 'Temp Disabled' :
+                                           qr.status === 'unused_today' ? 'Unused Today' :
+                                           qr.status === 'full_today' ? 'Full (20/20)' :
+                                           qr.status === 'active' ? 'Active' : qr.status}
+                                        </span>
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70">
+                                        {qr.remaining_today} slots
+                                      </td>
+                                      </tr>
+                                    ))
+                                  ) : (
+                                    <tr>
+                                      <td colSpan={5} className="px-6 py-8 text-center">
+                                        <div className="text-white/70">
+                                          <span className="text-2xl mb-2 block">📂</span>
+                                          No QR codes found
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          
+                          {/* Admin Actions */}
+                          <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-6">
+                            <h3 className="text-lg font-semibold text-white mb-4">🔧 Admin Actions</h3>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await loadQRStats()
+                                    addToast({ type: 'success', title: 'QR stats refreshed successfully!' })
+                                  } catch (error) {
+                                    addToast({ type: 'error', title: 'Failed to refresh stats', message: 'Check console for details' })
+                                  }
+                                }}
+                                disabled={qrLoading}
+                                className="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm"
+                              >
+                                🔄 Refresh Stats
+                              </button>
+                              
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await runDailyMaintenance()
+                                    addToast({ type: 'success', title: 'Maintenance completed successfully!' })
+                                  } catch (error) {
+                                    addToast({ type: 'error', title: 'Maintenance failed', message: 'Check console for details' })
+                                  }
+                                }}
+                                disabled={qrLoading}
+                                className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors text-sm"
+                              >
+                                🧹 Run Maintenance
+                              </button>
+                              
+                              <button
+                                onClick={async () => {
+                                  if (confirm('Are you sure you want to reset all QR daily limits? This will set all QRs back to 0/20.')) {
+                                    try {
+                                      await forceResetAllQRs()
+                                      addToast({ type: 'success', title: 'All QR codes reset successfully!' })
+                                    } catch (error) {
+                                      addToast({ type: 'error', title: 'Reset failed', message: 'Check console for details' })
+                                    }
+                                  }
+                                }}
+                                disabled={qrLoading}
+                                className="bg-orange-600 text-white px-4 py-3 rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors text-sm"
+                              >
+                                🔁 Force Reset All
+                              </button>
+                            </div>
+                            
+                            <div className="mt-4 p-4 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                              <p className="text-sm text-yellow-300">
+                                <strong>⚠️ Admin Actions:</strong>
+                              </p>
+                              <ul className="text-xs text-yellow-200 mt-2 space-y-1">
+                                <li><strong>Refresh Stats:</strong> Updates current QR status and statistics</li>
+                                <li><strong>Run Maintenance:</strong> Performs daily cleanup and resets expired QRs</li>
+                                <li><strong>Force Reset All:</strong> Immediately resets all QRs to 0/20 (use carefully)</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="bg-white/5 rounded-xl p-8 text-center border border-white/10">
+                          <div className="text-red-400 mb-4">
+                            <XCircle className="mx-auto h-16 w-16" />
+                          </div>
+                          <h3 className="text-xl font-semibold text-white mb-2">Failed to Load QR Statistics</h3>
+                          <p className="text-white/70 mb-4">
+                            Unable to fetch QR system information. Please check your connection and try again.
+                          </p>
+                          <button
+                            onClick={loadQRStats}
+                            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            Try Again
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Permission Denied Messages */}
                   {activeTab === 'payments' && !hasPermission('can_approve_payments') && (
                     <div className="text-center py-12">
@@ -1243,10 +1572,25 @@ export default function SecureUltimateAdminDashboard({ isOpen, onClose }: AdminD
                     </div>
                   )}
 
+                  {activeTab === 'tickets' && !hasPermission('can_view_tickets') && (
+                    <div className="text-center py-12">
+                      <Lock className="w-16 h-16 mx-auto mb-4 text-red-400" />
+                      <p className="text-red-300">🚫 Access Denied: Ticket viewing permission required</p>
+                    </div>
+                  )}
+
                   {activeTab === 'users' && !hasPermission('can_view_users') && (
                     <div className="text-center py-12">
                       <Lock className="w-16 h-16 mx-auto mb-4 text-red-400" />
                       <p className="text-red-300">🚫 Access Denied: User viewing permission required</p>
+                    </div>
+                  )}
+
+                  {activeTab === 'qr-admin' && !hasPermission('can_manage_qr_codes') && (
+                    <div className="text-center py-12">
+                      <Lock className="w-16 h-16 mx-auto mb-4 text-red-400" />
+                      <p className="text-red-300">🚫 Access Denied: QR codes management permission required</p>
+                      <p className="text-red-400 text-sm mt-2">Contact system administrator to grant 'can_manage_qr_codes' permission</p>
                     </div>
                   )}
                 </>

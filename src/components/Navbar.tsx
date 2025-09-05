@@ -34,7 +34,7 @@ const Navbar = () => {
   }, []);
 
   const navigate = useNavigate();
-  const isEditionsPage = window.location.pathname.includes('/editions');
+  const isEditionsPage = window.location.pathname.includes('#editions');
   const isSponsorsPage = window.location.pathname === '/sponsors';
 
   const navItems: NavItem[] = [
@@ -52,8 +52,8 @@ const Navbar = () => {
     },
     {
       name: 'Editions',
-      path: '/editions',
-      onClick: () => navigate('/editions'),
+      path: '#editions',
+      onClick: () => navigate('#editions'),
       dropdown: [
         { name: '2024', path: '/editions/2024' },
         { name: '2023', path: '/editions/2023' },

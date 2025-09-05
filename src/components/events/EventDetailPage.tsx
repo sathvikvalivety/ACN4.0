@@ -145,10 +145,10 @@ export default function EventDetailPage() {
 
     try {
       const { data, error } = await supabase
-        .from('eventsregistrations')
+        .from('registrations')  // Changed from 'eventsregistrations'
         .select('id')
         .eq('event_id', eventId)
-        .eq('user_email', user.email)
+        .eq('user_id', user.id)  // Changed from user_email to user_id
         .limit(1)
 
       if (error) throw error
@@ -255,10 +255,10 @@ export default function EventDetailPage() {
       try {
         setRegistering(true)
         const { error } = await supabase
-          .from('eventsregistrations')
+          .from('registrations')  // Changed from 'eventsregistrations'
           .delete()
           .eq('event_id', eventId)
-          .eq('user_email', user.email)
+          .eq('user_id', user.id)  // Changed from user_email to user_id
 
         if (error) throw error
 

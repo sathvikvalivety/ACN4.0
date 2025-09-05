@@ -3,8 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Edition2022 from './editions/pages/Edition2022';
 import Edition2023 from './editions/pages/Edition2023';
 import Edition2024 from './editions/pages/Edition2024';
-import SponsorsPage from './components/SponsorsPage';
 import { createRoot } from 'react-dom/client';
+import SponsorsPage from './components/SponsorsPage';
 
 import App from './App';
 import EventsApp from './EventsApp';

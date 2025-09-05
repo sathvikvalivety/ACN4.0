@@ -8,11 +8,13 @@ import EventDetailPage from './components/events/EventDetailPage'
 import BottomNavigation from './components/events/BottomNavigation'
 import ProfilePage from './components/events/ProfilePage'
 import AdminDashboard from './components/events/admin/AdminDashboard'
+// import SecureAdminPanel from './components/events/SecureAdminPanel' // 🔒 Ultra-secure alternative
 import { ToastContainer, useToast } from './components/events/Toast'
 import LoginPrompt from './components/events/LoginPrompt'
 import { useAuth } from './hooks/useAuth'
 import { supabase } from './lib/supabase'
 import PaymentPage from './components/events/PaymentPage'
+import AuthCallback from './components/events/AuthCallback'
 import useTypewriter from "./hooks/useTypewriter";
 
 interface Event {
@@ -81,6 +83,7 @@ function EventsApp() {
       <Route path="/" element={<HomePage />} />
       <Route path="event/:eventId" element={<EventDetailPage />} />
       <Route path="pay/:eventId" element={<PaymentPage />} />
+      <Route path="auth/callback" element={<AuthCallback />} />
     </Routes>
   )
 }
@@ -179,7 +182,6 @@ Nmap done: 1 IP address (1 host up) scanned in 5.67 seconds
       if (eventsError) throw eventsError
       setEvents(eventsData || [])
     } catch (error) {
-      console.error('Error fetching data:', error)
       addToast({
         type: 'error',
         title: 'Connection Failed',
@@ -415,6 +417,16 @@ Nmap done: 1 IP address (1 host up) scanned in 5.67 seconds
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
       />
+      {/* 🔒 TO USE ULTRA-SECURE PANEL: 
+           1. Uncomment the SecureAdminPanel import above
+           2. Replace AdminDashboard with SecureAdminPanel
+           3. Deploy the auth-guard edge function
+      
+      <SecureAdminPanel
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+      />
+      */}
 
       <LoginPrompt
         isOpen={showLoginPrompt}

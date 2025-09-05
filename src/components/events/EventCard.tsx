@@ -21,19 +21,22 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event }: EventCardProps) {
-  const [isRegistered, setIsRegistered] = useState(false)
+  const [registrationStatus, setRegistrationStatus] = useState<{
+    isRegistered: boolean
+    paymentStatus: 'pending' | 'approved' | 'rejected' | 'none'
+    loading: boolean
+  }>({ isRegistered: false, paymentStatus: 'none', loading: true })
   const [isRegistering, setIsRegistering] = useState(false)
   const { user } = useAuth()
   const { addToast } = useToast()
   const navigate = useNavigate()
-  
   
   // Check registration status on component mount
   useEffect(() => {
     if (user && event.id) {
       checkRegistration()
     } else {
-      setIsRegistered(false)
+      setRegistrationStatus({ isRegistered: false, paymentStatus: 'none', loading: false })
     }
   }, [user, event.id])
 
@@ -41,17 +44,32 @@ export default function EventCard({ event }: EventCardProps) {
     if (!user) return
 
     try {
-      const { data, error } = await supabase
-        .from('registrations')
-        .select('id')
-        .eq('event_id', event.id)
-        .eq('user_id', user.id)
-        .maybeSingle()
+      // Use secure backend function to check registration
+      const { data, error } = await supabase.rpc('check_user_registration', {
+        p_user_id: user.id,
+        p_event_id: event.id
+      })
 
-      if (error) throw error
-      setIsRegistered(!!data)
+      if (error) {
+        // Silent fail - don't expose database errors to user
+        console.error('Registration check failed')
+        setRegistrationStatus({ isRegistered: false, paymentStatus: 'none', loading: false })
+        return
+      }
+
+      if (data && data.length > 0) {
+        const result = data[0]
+        setRegistrationStatus({
+          isRegistered: result.is_registered,
+          paymentStatus: result.payment_status || 'none',
+          loading: false
+        })
+      } else {
+        setRegistrationStatus({ isRegistered: false, paymentStatus: 'none', loading: false })
+      }
     } catch (error) {
-      console.error('Error checking registration:', error)
+      // Silent fail - don't expose errors
+      setRegistrationStatus({ isRegistered: false, paymentStatus: 'none', loading: false })
     }
   }
 
@@ -80,8 +98,23 @@ export default function EventCard({ event }: EventCardProps) {
       addToast({
         type: 'warning',
         title: 'Login Required',
-        message: 'Please sign in before registering for events',
-        duration: 4000
+        message: 'Please sign in to register'
+      })
+      return
+    }
+
+    // Check if already registered first
+    if (registrationStatus.isRegistered) {
+      const statusMessages = {
+        pending: 'Payment verification in progress',
+        approved: 'You are already registered!', 
+        rejected: 'Previous payment was declined. Contact support.'
+      }
+      
+      addToast({
+        type: registrationStatus.paymentStatus === 'approved' ? 'success' : 'info',
+        title: 'Already Registered',
+        message: statusMessages[registrationStatus.paymentStatus] || 'Registration exists'
       })
       return
     }
@@ -90,19 +123,56 @@ export default function EventCard({ event }: EventCardProps) {
     if (!isProfileComplete) {
       addToast({
         type: 'warning',
-        title: 'Profile Incomplete',
-        message: 'Please complete your profile (Name, Phone, Roll No, Branch) before registering',
-        duration: 5000
+        title: 'Complete Profile',
+        message: 'Please update your profile first'
       })
       return
     }
 
-    // Navigate to payment page flow with context
     setIsRegistering(true)
-    navigate(`pay/${event.id}`, {
-      state: { eventTitle: event.title, amount: event.price ?? 0 },
-    })
-    setTimeout(() => setIsRegistering(false), 200)
+    
+    try {
+      // Use secure backend function to register
+      const { data, error } = await supabase.rpc('register_user_for_event', {
+        p_user_id: user.id,
+        p_event_id: event.id
+      })
+
+      if (error) {
+        addToast({
+          type: 'error',
+          title: 'Registration Failed',
+          message: 'Please try again'
+        })
+        return
+      }
+
+      const result = data?.[0]
+      if (!result?.success) {
+        addToast({
+          type: 'info',
+          title: 'Registration Status',
+          message: result?.message || 'Already registered'
+        })
+        // Refresh registration status
+        checkRegistration()
+        return
+      }
+
+      // Success - navigate to payment
+      navigate(`pay/${event.id}`, {
+        state: { eventTitle: event.title, amount: event.price ?? 0 },
+      })
+      
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'Registration Failed',
+        message: 'Please try again later'
+      })
+    } finally {
+      setIsRegistering(false)
+    }
   }
 
   return (
@@ -123,10 +193,16 @@ export default function EventCard({ event }: EventCardProps) {
       <Users className="h-16 w-16 text-white opacity-50" />
     </div>
   )}
-  {isRegistered && (
-    <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center">
+  {registrationStatus.isRegistered && (
+    <div className={`absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center ${
+      registrationStatus.paymentStatus === 'approved' ? 'bg-green-500' :
+      registrationStatus.paymentStatus === 'pending' ? 'bg-yellow-500' :
+      registrationStatus.paymentStatus === 'rejected' ? 'bg-red-500' : 'bg-gray-500'
+    }`}>
       <Check className="h-3 w-3 mr-1" />
-      Registered
+      {registrationStatus.paymentStatus === 'approved' ? 'Registered' :
+       registrationStatus.paymentStatus === 'pending' ? 'Pending' :
+       registrationStatus.paymentStatus === 'rejected' ? 'Rejected' : 'Registered'}
     </div>
   )}
 </div>
@@ -160,17 +236,27 @@ export default function EventCard({ event }: EventCardProps) {
         <div className="mt-4 space-y-2">
           <button
             onClick={handleRegister}
-            disabled={isRegistering || isRegistered}
+            disabled={isRegistering || registrationStatus.loading || (registrationStatus.isRegistered && registrationStatus.paymentStatus === 'approved')}
             className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
-              isRegistered
+              registrationStatus.isRegistered && registrationStatus.paymentStatus === 'approved'
                 ? 'bg-green-100 text-green-800 cursor-default dark:bg-green-900 dark:text-green-200'
+                : registrationStatus.isRegistered && registrationStatus.paymentStatus === 'pending'
+                ? 'bg-yellow-100 text-yellow-800 cursor-default dark:bg-yellow-900 dark:text-yellow-200'
+                : registrationStatus.isRegistered && registrationStatus.paymentStatus === 'rejected' 
+                ? 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200'
                 : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600'
-            } ${isRegistering ? 'opacity-70 cursor-not-allowed' : ''}`}
+            } ${(isRegistering || registrationStatus.loading) ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            {isRegistering ? (
+            {registrationStatus.loading ? (
+              'Loading...'
+            ) : isRegistering ? (
               'Processing...'
-            ) : isRegistered ? (
-              'Registered'
+            ) : registrationStatus.isRegistered && registrationStatus.paymentStatus === 'approved' ? (
+              '✓ Registered'
+            ) : registrationStatus.isRegistered && registrationStatus.paymentStatus === 'pending' ? (
+              '⏳ Payment Pending'
+            ) : registrationStatus.isRegistered && registrationStatus.paymentStatus === 'rejected' ? (
+              '❌ Payment Rejected - Retry'
             ) : (
               'Pay & Register'
             )}
